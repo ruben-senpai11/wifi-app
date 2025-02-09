@@ -1,16 +1,19 @@
 
 .container{
-  background-color: #3a3a3a3a;
+  background-color: #98888858;
+  background-color: #2a2a2a44;
+  /* color: black; */
 }
 table {
   width: 100%;
-  /* border-collapse: collapse; */
+  border-collapse: collapse;  
   margin-top: 10px;
 }
 
 /* table, */
 th,
 td {
+  border: 1px solid green;
   border: 1px solid yellow;
   padding: 8px;
   text-align: left;
@@ -20,4 +23,36 @@ th{
 }
 td:nth-child(4){
   font-weight: 600;
+}
+
+.footer{
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;  
+  position: fixed;
+  bottom: 0;
+}
+
+@media (max-width:758px) {
+  h1{
+    font-size: 36px;
+  }
+  .wrapper{
+    padding: 7% 5% 2% 5%;
+  }
+  h2{
+    font-size: 24px;
+  }
+  th, td{
+    padding: 4px;
+  }
+  th, td, .button {
+    font-size: 14px;
+  }
+
+  .footer{
+    padding: .5rem 1rem;
+    gap: 5px;
+    font-size: 14px;
+  }
 }

@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WiFi Portal</title>
+  <link rel="stylesheet" href="assets/css/main.css">
+  <script src="./assets/scripts/tailwind.js"></script>
+  <script src="https://cdn.fedapay.com/checkout.js?v=1.1.7"></script>
+</head>
+
+<body>
+  <div class="flex flex-col items-center justify-center min-h-screen bg-fuchsia-700 p-4 ">
+    <!-- <h1>Your WIFI Portal</h1> -->
+    <div class="containerr max-w-sm w-full p-7 py-6 bg-white shadow-lg rounded-lg ">
+      <h2 class="text-2xl font-bold mb-4">Créer mon compte </h2>
+      <formm class="" onsubmit="login(event)">
+        <div class="mb-4">
+          <label class="block text-sm font-medium">Email:</label>
+          <input id="email" type="email" class="w-full border border-gray-300 rounded p-2" placeholder="monadresse@gmail.com" autocomplete="email" />
+        </div>
+
+        <div class="mb-4">
+          <label class="block text-sm font-medium">Numero de telephone: </label>
+          <input id="tel" type="tel" class="w-full border border-gray-300 rounded p-2" placeholder="+229 01 96969090" autocomplete="tel" />
+        </div>
+
+        <div class="mb-4">
+          <label class="block text-sm font-medium">Mot de passe:</label>
+          <input id="password" type="password" class="w-full border border-gray-300 rounded p-2" />
+        </div>
+
+        <div class="mb-4">
+          <label class="block text-sm font-medium">Forfait:</label>
+          <select id="" name="select" class="w-full border border-gray-300 text-slate-700 rounded p-2">
+            <option value="-">Veuillez choisir un forfait</option>
+            <option value="kwaabo">Kwaabo - 2heures - Validité 1 jour</option>
+            <option value="waaba">Waaba - 12h - Validité 3 jours</option>
+            <option value="semaine">Semaine - 24h - Validité 7 jours</option>
+            <option value="mois">Mois - 120h - Validité 30 jours</option>
+          </select>
+        </div>
+
+        <div class="mb-4">
+          <label class="block text-sm text-slate-500 font-medium">
+            Montant:
+            <span class="text-emerald-500 font-bold ">200 FCFA</span>
+          </label>
+        </div>
+
+        <p id="errors" class="text-red-500 text-sm pb-4 "></p>
+
+
+        <button 
+          id="pay-btn" 
+          class="button w-full bg-blue-500 text-white py-2 cursor-pointer rounded hover:bg-emerald-400"
+          data-transaction-amount="1000" 
+          data-transaction-description="Acheter mon produit"
+          data-customer-email="johndoe@gmail.com" 
+          data-customer-lastname="Doe"
+          >
+          Payer 1000 FCFA
+        </button>
+        
+        <!-- <button id="pay" type="button"
+        class="button w-full bg-blue-500 text-white py-2 cursor-pointer rounded hover:bg-emerald-400"
+        >
+          Payer 100 FCFA
+        </button> -->
+        <p class="mt-3 text-sm text-gray-500">
+          Vous avez dejà compte?
+          <br>
+          <a class="text-md text-blue-700 hover:text-emerald-500" href="login.html">Me connecter</a>
+        </p>
+      </formm>
+    </div>
+    <div class="w-full max-w-full flex justify-center items-center py-5 ">
+      <nav class="footer max-w-xl w-full m-auto mt-12 p-7 py-3 bg-white text-gray-600 rounded-full ">
+        <a href="index.html"
+          class="flex flex-col items-start justify-center gap-7 p- font-bold rounded-full hover:text-emerald-500 ">Accueil</a>
+        <a href="register.html"
+          class="flex flex-col items-start justify-center gap-7 p- font-bold rounded-full hover:text-emerald-500 ">Tableau
+          de board</a>
+        <a href="fedatest.html"
+          class="flex flex-col items-start justify-center gap-7 p- font-bold rounded-full hover:text-emerald-500 ">A
+          propos</a>
+      </nav>
+    </div>
+  </div>
+
+  
+  <script type="text/javascript">
+    let widget = FedaPay.init({
+      public_key: 'pk_sandbox_eR4O8pIqXkutNzH_MTm_HM0z'
+    });
+    let btn = document.getElementById('pay-btn');
+    btn.addEventListener('click', () => {
+      widget.open();
+    });
+  </script>
+  <!-- <div id="embed" style="width: 500px; height: 420px"></div> -->
+</body>
+
+</html>

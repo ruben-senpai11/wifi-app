@@ -27,11 +27,11 @@
       }
 
       if ( email && password) {
-        errorContainer.textContent = 'Vous devez renseigner votre email et votre mot de passe !';
+       // errorContainer.textContent = 'Vous devez renseigner votre email et votre mot de passe !';
         return;
       }
 
-      /*
+      
       try {
         const response = await fetch('/api/login', {
           method: 'POST',
@@ -50,7 +50,7 @@
       } catch (error) {
         errorContainer.textContent = error.message || 'Something went wrong.';
       }
-      */
+      
       
       console.log("Connected");
     }
@@ -65,16 +65,15 @@
   <div class="flex flex-col items-center justify-center min-h-screen bg-fuchsia-700 p-4 ">
     <!-- <h1>Your WIFI Portal</h1> -->
     <div class="containerr max-w-sm w-full p-7 py-6 bg-white shadow-lg rounded-lg ">
-      <h2 class="text-2xl font-bold mb-4">Créer mon compte </h2>
+      <h2 class="text-2xl font-bold mb-4">Me connecter</h2>
       <form class="" onsubmit="login(event)">
         <div class="mb-4">
-          <label class="block text-sm font-medium">Email:</label>
+          <label class="block text-sm font-medium">Identifiant:</label>
           <input
-            id="email"
-            type="email"
+            id="identifiant"
+            type="text"
             class="w-full border border-gray-300 rounded p-2"
-            autocomplete="email"
-            
+            required
           />
         </div>
   
@@ -84,7 +83,7 @@
             id="password"
             type="password"
             class="w-full border border-gray-300 rounded p-2"
-            
+            required
           />
         </div>
   
@@ -92,18 +91,24 @@
   
         <button
           type="submit"
-          class="w-full bg-emerald-500 text-white py-2 cursor-pointer rounded hover:bg-emerald-600"
-        >
+          class="button w-full bg-blue-500 text-white py-2 cursor-pointer rounded hover:bg-emerald-400">
         Connexion
         </button>
         <p class="mt-3 text-sm text-gray-500">
           Vous n'avez pas encore de compte?
           <br>
-          <a class="text-md text-blue-700 hover:text-emerald-500" href="signup.html">Créer mon compte</a>
+          <a class="text-md text-blue-700 hover:text-emerald-500" href="register.html">Créer mon compte</a>
         </p>
       </form>
     </div>
+    <div class="w-full max-w-full flex justify-center items-center py-5 ">
+      <nav class="footer max-w-xl w-full m-auto mt-12 p-7 py-3 bg-white text-gray-600 rounded-full ">
+      <a href="index.html" class="flex flex-col items-start justify-center gap-7 p- font-bold rounded-full hover:text-emerald-500 ">Accueil</a>
+      <a href="register.html" class="flex flex-col items-start justify-center gap-7 p- font-bold rounded-full hover:text-emerald-500 ">Tableau de board</a>
+      <a href="#" class="flex flex-col items-start justify-center gap-7 p- font-bold rounded-full hover:text-emerald-500 ">A propos</a>
+    </nav>
   </div>
+</div>
 </body>
 
 </html>

@@ -1,0 +1,5 @@
+{
+  "dependencies": {
+    "fedapay": "^1.2.4"
+  }
+}
