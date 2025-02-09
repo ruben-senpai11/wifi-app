@@ -1,0 +1,23 @@
+
+.container{
+  background-color: #3a3a3a3a;
+}
+table {
+  width: 100%;
+  /* border-collapse: collapse; */
+  margin-top: 10px;
+}
+
+/* table, */
+th,
+td {
+  border: 1px solid yellow;
+  padding: 8px;
+  text-align: left;
+}
+th{
+  font-weight: 800;
+}
+td:nth-child(4){
+  font-weight: 600;
+}

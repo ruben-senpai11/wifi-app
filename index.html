@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WiFi Portal</title>
+  <link rel="stylesheet" href="assets/css/main.css">
+  <script src="./assets/scripts/tailwind.js"></script>
+  <script src="./assets/scripts/typescript.min.js"></script>
+  <script>
+    async function login(event) {
+      event.preventDefault();
+
+      const emailInput = document.getElementById('email');
+      const passwordInput = document.getElementById('password');
+      const errorContainer = document.getElementById('errors');
+
+      const email = emailInput.value;
+      const password = passwordInput.value;
+
+      errorContainer.textContent = '';
+
+      if (!email || !password) {
+        errorContainer.textContent = 'Both email and password are required.';
+        return;
+      }
+
+      if ( email && password) {
+        errorContainer.textContent = 'Both email and password are required.';
+        return;
+      }
+      
+      console.log("Connected");
+    }
+    function handleButton (action){
+      
+    }
+  </script>
+  <style type="text/tailwindcss">
+  </style>
+
+</head>
+
+<body>
+  <div class="flex flex-col items-start justify-center gap-7 min-h-screen bg-fuchsia-800 p-12 ">
+    <h1 class="text-5xl font-bold text-yellow-300 " >Mon WIFI Moderne</h1>
+    <div class="container max-w-xxl w-full p-7 py-6 bg-transparent backdrop:blur-lg text-white shadow-lg rounded-lg ">
+      <h2 class="text-2xl font-bold mb-4">Créez votre compte instantanément pour profiter de nos tarifs</h2>
+      <p class="mb-8" >Payez une fois et profitez de nos tarifs exeptionnels </p>
+      <table class="table max-w-xl w-full m-auto mt-4 " >
+        <thead>
+          <th>Forfait</th>
+          <th>Duree</th>
+          <th>Validité</th>
+          <th>Prix</tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td >Kwaabo (Express)</td>
+            <td >2 heures</td>
+            <td >1 jour</td>
+            <td >100 f</td>
+          </tr>
+          <tr>
+            <td >Waaba (Habitué)</td>
+            <td >12h</td>
+            <td >3 jours</td>
+            <td >500 f</td>
+          </tr>
+          <tr>
+            <td >Semaine (Client Fidèle)</td>
+            <td >24h</td>
+            <td >7 jours</td>
+            <td >1000 f</td>
+          </tr>
+          <tr>
+          <tr>
+            <td >Mois (Expert)</td>
+            <td >120h</td>
+            <td >30 jours</td>
+            <td >3000 f</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="flex justify-center gap-4 py-4 pt-12 ">
+        <a href="login.html" class="p-4 py-2 bg-emerald-700 text-white rounded-md cursor-pointer hover:scale-104 transition-all " >Créer mon compte</a>
+        <a href="signup.html" class="p-4 py-2 bg-white text-black rounded-md cursor-pointer hover:scale-104 transition-all" >J'ai déjà un compte</a>
+      </div>
+    </div>
+  </div>
+</body>
+
+</html>
