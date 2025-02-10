@@ -46,7 +46,7 @@
   <div class="wrapper flex flex-col items-start justify-center gap-7 min-h-screen bg-fuchsia-700 p-12 pb-4 ">
     <h1 class="text-5xl font-bold text-yellow-300 ">Mon WIFI Moderne</h1>
     <div
-      class="container max-w-xxl w-full p-7 py-6 bg-transparent backdrop:blur-lg text-white shadow-lg rounded-lg m-auto ">
+      class="container max-w-5xl w-full p-7 py-6 bg-transparent backdrop:blur-lg text-white shadow-lg rounded-lg m-auto ">
       <h2 class="text-2xl font-bold mb-4">Créez votre compte instantanément pour profiter de nos tarifs</h2>
       <p class="mb-8">Payez une fois et profitez de nos tarifs exceptionnels </p>
       <table class="table max-w-xl w-full m-auto mt-4 ">
@@ -93,19 +93,18 @@
           un compte</a>
       </div>
     </div>
-    <div class="w-full max-w-full flex justify-center items-center py-5 ">
-      <nav class="footer max-w-xl w-full m-auto mt-12 p-7 py-3  bg-white text-gray-600 rounded-full ">
-        <a href="index.html"
-          class="flex flex-col items-start justify-center gap-7 p- font-bold rounded-full hover:text-emerald-500 ">Accueil</a>
-        <a href="register.html"
-          class="flex flex-col items-start justify-center gap-7 p- font-bold rounded-full hover:text-emerald-500 ">Tableau
-          de board</a>
-        <a href="#"
-          class="flex flex-col items-start justify-center gap-7 p- font-bold rounded-full hover:text-emerald-500 ">A
-          propos</a>
-      </nav>
+    <div id="footer-placeholder" class="w-full max-w-full flex justify-center items-center py-5 ">      
     </div>
   </div>
+
+  <script>
+    fetch('/components/footer.html')
+      .then(response => response.text())
+      .then(data => {
+        document.getElementById('footer-placeholder').innerHTML = data;
+      })
+      .catch(error => console.error('Error loading footer:', error));
+  </script>
 </body>
 
 </html>
