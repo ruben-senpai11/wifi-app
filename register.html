@@ -19,27 +19,26 @@
 
         <div class="mb-4">
           <label class="block text-sm font-medium">Nom:</label>
-          <input id="name" type="text" class="w-full border border-gray-300 rounded p-2"
-            placeholder="Martin GANDAHO" autocomplete="name" />
+          <input id="name" type="text" class="w-full border border-gray-300 rounded p-2" placeholder="Martin GANDAHO"
+            autocomplete="name" />
         </div>
 
-        <formm class="" onsubmit="login(event)">
-          <div class="mb-4">
-            <label class="block text-sm font-medium">Email:</label>
-            <input id="email" type="email" class="w-full border border-gray-300 rounded p-2"
-              placeholder="monadresse@gmail.com" autocomplete="email" />
-          </div>
-  
+        <div class="mb-4">
+          <label class="block text-sm font-medium">Email:</label>
+          <input id="email" type="email" class="w-full border border-gray-300 rounded p-2"
+            placeholder="monadresse@gmail.com" autocomplete="email" />
+        </div>
+
         <div class="mb-4">
           <label class="block text-sm font-medium">Numero de telephone: </label>
           <input id="tel" type="tel" class="w-full border border-gray-300 rounded p-2" placeholder="+229 01 96969090"
             autocomplete="tel" />
         </div>
 
-        <div class="mb-4">
+        <!-- <div class="mb-4">
           <label class="block text-sm font-medium">Mot de passe:</label>
           <input id="password" type="password" class="w-full border border-gray-300 rounded p-2" />
-        </div>
+        </div> -->
 
         <div class="mb-4">
           <label class="block text-sm font-medium">Forfait:</label>
@@ -62,12 +61,9 @@
         <p id="errors" class="text-red-500 text-sm pb-4 "></p>
 
 
-        <button id="pay"
-          class="button w-full bg-blue-500 text-white py-2 cursor-pointer rounded hover:bg-emerald-400"
-          data-transaction-amount="1000" 
-          data-transaction-description="Acheter mon produit"
-          data-customer-email="johndoe@gmail.com" 
-          data-customer-lastname="Doe">
+        <button id="pay" class="button w-full bg-blue-500 text-white py-2 cursor-pointer rounded hover:bg-emerald-400"
+          data-transaction-amount="200" data-transaction-description="Acheter mon produit"
+          data-customer-email="johndoe@gmail.com" data-customer-lastname="Doe">
           Payer 200 FCFA
         </button>
 
@@ -96,44 +92,69 @@
       .catch(error => console.error('Error loading footer:', error));
   </script>
 
-  <script type="text/javascript">
+  <script>
     document.addEventListener('DOMContentLoaded', () => {
-      const name = document.getElementById('name');
-      const email = document.getElementById('email');
+      const nameInput = document.getElementById('name');
+      const emailInput = document.getElementById('email');
+      const telInput = document.getElementById('tel');
       const selectElement = document.getElementById('package');
-      const montantValue = document.getElementById('amount');
+      const amountInput = document.getElementById('amount');
       const payButton = document.getElementById('pay');
 
-      selectElement.addEventListener('change', (event) => {
-        // Get selected option and its data-amount
+      // Update payment amount when package selection changes
+      selectElement.addEventListener('change', () => {
         const selectedOption = selectElement.options[selectElement.selectedIndex];
         const amount = selectedOption.dataset.amount || '0';
-        const package = selectedOption.value
 
-        // Update Montant display
-        montantValue.textContent = `${amount} FCFA`;
-
-        // Update button text and data attribute
+        console.log('amountInput: ', amountInput);
+        amountInput.textContent = `${amount} FCFA`;
         payButton.textContent = `Payer ${amount} FCFA`;
-        payButton.setAttribute('data-transaction-amount', amount);
-        payButton.setAttribute('data-transaction-description', package);
-        payButton.setAttribute('data-customer-email', email);
-        payButton.setAttribute('data-customer-lastname', name);
+      });
 
-        console.log(name, email, amount, package);
-        
+      // Initialize FedaPay widget
+      let widget = FedaPay.init({
+        public_key: 'pk_live_IPcFF7b0xlVCkOl8DGaWKy5a'
+      });
+
+      // Handle payment button click
+      payButton.addEventListener('click', (event) => {
+        event.preventDefault(); // Prevent form submission
+
+        const selectedOption = selectElement.options[selectElement.selectedIndex];
+        const amount = selectedOption.dataset.amount || '0';
+        const packageName = selectedOption.value;
+
+        if (!nameInput.value || !emailInput.value || !telInput.value) {
+          document.getElementById('errors').textContent = "Veuillez renseigner toutes les informations !";
+          return;
+        }
+
+        document.getElementById('errors').textContent = ''; // Clear errors
+
+        // Pass dynamic attributes to FedaPay widget
+        widget.open({
+          transaction: {
+            amount: parseInt(amount),
+            description: `Forfait: ${packageName}`,
+          },
+          customer: {
+            email: emailInput.value,
+            lastname: nameInput.value,
+            phone_number: telInput.value,
+          }
+        });
+
+        console.log("Payment data:", {
+          name: nameInput.value,
+          email: emailInput.value,
+          phone: telInput.value,
+          amount,
+          package: packageName
+        });
       });
     });
-
-
-    let widget = FedaPay.init({
-      public_key: 'pk_sandbox_eR4O8pIqXkutNzH_MTm_HM0z'
-    });
-    let btn = document.getElementById('pay');
-    btn.addEventListener('click', () => {
-      widget.open();
-    });
   </script>
+
   <!-- <div id="embed" style="width: 500px; height: 420px"></div> -->
 </body>
 
