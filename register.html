@@ -15,8 +15,7 @@
     <!-- <h1>Your WIFI Portal</h1> -->
     <div class="containerr max-w-sm w-full p-7 py-6 bg-white shadow-lg rounded-lg ">
       <h2 class="text-2xl font-bold mb-4">Créer mon compte </h2>
-      <form class="" >
-
+      <form id="registerForm">
         <div class="mb-4">
           <label class="block text-sm font-medium">Nom:</label>
           <input id="name" type="text" class="w-full border border-gray-300 rounded p-2" placeholder="Martin GANDAHO"
@@ -61,8 +60,7 @@
         <p id="errors" class="text-red-500 text-sm pb-4 "></p>
 
 
-        <button id="pay" 
-          type="submit"
+        <button id="pay" type="submit"
           class="button w-full bg-blue-500 text-white py-2 cursor-pointer rounded hover:bg-emerald-400"
           data-transaction-amount="200" data-transaction-description="Acheter mon produit"
           data-customer-email="johndoe@gmail.com" data-customer-lastname="Doe">
@@ -80,6 +78,7 @@
           <a class="text-md text-blue-700 hover:text-emerald-500" href="login.html">Me connecter</a>
         </p>
       </form>
+
     </div>
     <div id="footer-placeholder" class="w-full max-w-full flex justify-center items-center py-5 ">
     </div>
@@ -95,6 +94,7 @@
   </script>
 
   <script>
+
     document.addEventListener('DOMContentLoaded', () => {
       const nameInput = document.getElementById('name');
       const emailInput = document.getElementById('email');
@@ -155,9 +155,42 @@
         });
       });
     });
+
+    document.getElementById('registerForm').addEventListener('submit', async (event) => {
+      event.preventDefault();
+
+      const name = document.getElementById('name').value;
+      const email = document.getElementById('email').value;
+      const phone = document.getElementById('tel').value;
+      const errorElement = document.getElementById('errors');
+
+      if (!name || !email || !phone) {
+        errorElement.textContent = "Veuillez renseigner toutes les informations !";
+        return;
+      }
+
+      errorElement.textContent = ""; // Clear errors
+
+      const response = await fetch('/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, email, phone })
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        alert("Inscription réussie ! Votre WiFi est activé.");
+        document.getElementById('registerForm').reset();
+      } else {
+        errorElement.textContent = data.error;
+      }
+    });
+
+    
   </script>
 
-  <!-- <div id="embed" style="width: 500px; height: 420px"></div> -->
+
 </body>
 
 </html>
