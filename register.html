@@ -15,7 +15,7 @@
     <!-- <h1>Your WIFI Portal</h1> -->
     <div class="containerr max-w-sm w-full p-7 py-6 bg-white shadow-lg rounded-lg ">
       <h2 class="text-2xl font-bold mb-4">Créer mon compte </h2>
-      <formm class="" onsubmit="login(event)">
+      <form class="" >
 
         <div class="mb-4">
           <label class="block text-sm font-medium">Nom:</label>
@@ -61,7 +61,9 @@
         <p id="errors" class="text-red-500 text-sm pb-4 "></p>
 
 
-        <button id="pay" class="button w-full bg-blue-500 text-white py-2 cursor-pointer rounded hover:bg-emerald-400"
+        <button id="pay" 
+          type="submit"
+          class="button w-full bg-blue-500 text-white py-2 cursor-pointer rounded hover:bg-emerald-400"
           data-transaction-amount="200" data-transaction-description="Acheter mon produit"
           data-customer-email="johndoe@gmail.com" data-customer-lastname="Doe">
           Payer 200 FCFA
@@ -77,7 +79,7 @@
           <br>
           <a class="text-md text-blue-700 hover:text-emerald-500" href="login.html">Me connecter</a>
         </p>
-      </formm>
+      </form>
     </div>
     <div id="footer-placeholder" class="w-full max-w-full flex justify-center items-center py-5 ">
     </div>
