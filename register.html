@@ -22,11 +22,11 @@
             autocomplete="name" />
         </div>
 
-        <div class="mb-4">
+        <!-- <div class="mb-4">
           <label class="block text-sm font-medium">Email:</label>
           <input id="email" type="email" class="w-full border border-gray-300 rounded p-2"
             placeholder="monadresse@gmail.com" autocomplete="email" />
-        </div>
+        </div> -->
 
         <div class="mb-4">
           <label class="block text-sm font-medium">Numero de telephone: </label>
@@ -97,7 +97,7 @@
 
     document.addEventListener('DOMContentLoaded', () => {
       const nameInput = document.getElementById('name');
-      const emailInput = document.getElementById('email');
+      //const emailInput = document.getElementById('email');
       const telInput = document.getElementById('tel');
       const selectElement = document.getElementById('package');
       const amountInput = document.getElementById('amount');
@@ -115,7 +115,7 @@
 
       // Initialize FedaPay widget
       let widget = FedaPay.init({
-        public_key: 'pk_live_IPcFF7b0xlVCkOl8DGaWKy5a'
+        public_key: 'pk_live_YSlxSSpIrQssqOUVEOSD-iNe'
       });
 
       // Handle payment button click
@@ -126,7 +126,7 @@
         const amount = selectedOption.dataset.amount || '0';
         const packageName = selectedOption.value;
 
-        if (!nameInput.value || !emailInput.value || !telInput.value) {
+        if (!nameInput.value || !telInput.value) {
           document.getElementById('errors').textContent = "Veuillez renseigner toutes les informations !";
           return;
         }
@@ -140,7 +140,6 @@
             description: `Forfait: ${packageName}`,
           },
           customer: {
-            email: emailInput.value,
             lastname: nameInput.value,
             phone_number: telInput.value,
           }
@@ -148,7 +147,6 @@
 
         console.log("Payment data:", {
           name: nameInput.value,
-          email: emailInput.value,
           phone: telInput.value,
           amount,
           package: packageName
@@ -160,11 +158,11 @@
       event.preventDefault();
 
       const name = document.getElementById('name').value;
-      const email = document.getElementById('email').value;
+     // const email = document.getElementById('email').value;
       const phone = document.getElementById('tel').value;
       const errorElement = document.getElementById('errors');
 
-      if (!name || !email || !phone) {
+      if (!name || !phone) {
         errorElement.textContent = "Veuillez renseigner toutes les informations !";
         return;
       }
@@ -174,7 +172,7 @@
       const response = await fetch('/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, email, phone })
+        body: JSON.stringify({ name, phone })
       });
 
       const data = await response.json();

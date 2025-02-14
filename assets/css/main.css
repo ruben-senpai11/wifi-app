@@ -22,7 +22,7 @@ th{
   font-weight: 800;
 }
 td:nth-child(4){
-  font-weight: 600;
+  font-weight: 800;
 }
 
 .footer{
@@ -37,8 +37,12 @@ td:nth-child(4){
   h1{
     font-size: 36px;
   }
+  .container{
+    padding-left: 3%;
+    padding-right: 3%;
+  }
   .wrapper{
-    padding: 7% 5% 2% 5%;
+    padding: 7% 3% 2% 3%;
   }
   h2{
     font-size: 24px;
@@ -50,10 +54,20 @@ td:nth-child(4){
     font-size: 14px;
   }
 
+  td:nth-child(1){
+    max-width: 100px;
+  }
+
   .footer{
     padding: .5rem 1rem;
     gap: 5px;
     font-size: 14px;
     box-shadow: 0 0 6px green;
+  }
+}
+
+@media (max-width:300px) {
+  .button{
+    padding: 2px 4px;
   }
 }
