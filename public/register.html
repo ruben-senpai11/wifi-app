@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WiFi Portal</title>
+  <link rel="stylesheet" href="/public/assets/css/main.css">
+  <script src="/public/assets/scripts/tailwind.js"></script>
+  <script src="/public/assets/scripts/checkout.js"></script>
+</head>
+
+<body>
+  <div class="flex flex-col items-center justify-center min-h-screen bg-fuchsia-700 p-4 ">
+    <!-- <h1>Your WIFI Portal</h1> -->
+    <div class="containerr max-w-sm w-full p-7 py-6 bg-white shadow-lg rounded-lg ">
+      <h2 class="text-2xl font-bold mb-4">Créer mon compte </h2>
+      <form id="registerForm">
+        <div class="mb-4">
+          <label class="block text-sm font-medium">Nom:</label>
+          <input id="name" type="text" class="w-full border border-gray-300 rounded p-2" placeholder="Martin GANDAHO"
+            autocomplete="name" />
+        </div>
+
+        <!-- <div class="mb-4">
+          <label class="block text-sm font-medium">Email:</label>
+          <input id="email" type="email" class="w-full border border-gray-300 rounded p-2"
+            placeholder="monadresse@gmail.com" autocomplete="email" />
+        </div> -->
+
+        <div class="mb-4">
+          <label class="block text-sm font-medium">Numero de telephone: </label>
+          <input id="tel" type="tel" class="w-full border border-gray-300 rounded p-2" placeholder="+229 01 96969090"
+            autocomplete="tel" />
+        </div>
+
+        <!-- <div class="mb-4">
+          <label class="block text-sm font-medium">Mot de passe:</label>
+          <input id="password" type="password" class="w-full border border-gray-300 rounded p-2" />
+        </div> -->
+
+        <div class="mb-4">
+          <label class="block text-sm font-medium">Forfait:</label>
+          <select id="package" name="select" class="w-full border border-gray-300 text-slate-700 rounded p-2">
+            <!-- <option data-amount="0" value="-">Veuillez choisir un forfait</option> -->
+            <option data-amount="200" value="kwaabo">Kwaabo - 2heures - Validité 1 jour</option>
+            <option data-amount="500" value="waaba">Waaba - 12h - Validité 3 jours</option>
+            <option data-amount="1000" value="semaine">Semaine - 24h - Validité 7 jours</option>
+            <option data-amount="2000" value="2semaines">Semaines - 55h - Validité 14 jours</option>
+            <option data-amount="3500" value="mois">Mois - 120h - Validité 30 jours</option>
+            <option data-amount="5000" value="illimite">Mois - Illimité - Validité 30 jours</option>
+          </select>
+        </div>
+
+        <div class="mb-4">
+          <label class="block text-sm text-slate-500 font-medium">
+            Montant:
+            <span id="amount" class="text-emerald-500 font-bold ">200 FCFA</span>
+          </label>
+        </div>
+
+        <p id="errors" class="text-red-500 text-sm pb-4 "></p>
+
+
+        <button id="pay" type="submit"
+          class="button w-full bg-blue-500 text-white py-2 cursor-pointer rounded hover:bg-emerald-400"
+          data-transaction-amount="200" data-transaction-description="Acheter mon produit"
+          data-customer-email="johndoe@gmail.com" data-customer-lastname="Doe">
+          Payer 200 FCFA
+        </button>
+
+        <!-- <button id="pay" type="button"
+        class="button w-full bg-blue-500 text-white py-2 cursor-pointer rounded hover:bg-emerald-400"
+        >
+          Payer 100 FCFA
+        </button> -->
+        <p class="mt-3 text-sm text-gray-500">
+          Vous avez dejà un forfait actif?
+          <br>
+          <a class="text-md text-blue-700 hover:text-emerald-500" href="login.html">Voir mon compte</a>
+        </p>
+      </form>
+
+    </div>
+    <!-- <div id="embed" style="width: 500px; height: 420px"></div>  -->
+    <div id="footer-placeholder" class="w-full max-w-full flex justify-center items-center py-5 ">
+    </div>
+  </div>
+
+
+
+  <script>
+    fetch('/public/components/footer.html')
+      .then(response => response.text())
+      .then(data => {
+        document.getElementById('footer-placeholder').innerHTML = data;
+      })
+      .catch(error => console.error('Error loading footer:', error));
+  </script>
+
+
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      const nameInput = document.getElementById("name");
+//      const emailInput = document.getElementById("email");
+      const telInput = document.getElementById("tel");
+      const selectElement = document.getElementById("package");
+      const payButton = document.getElementById("pay");
+
+      payButton.addEventListener("click", async (event) => {
+        event.preventDefault();
+
+        const name = nameInput.value;
+//        const email = emailInput.value;
+        const phone = telInput.value;
+        const package = selectElement.value;
+
+        if (!name || !phone) {
+          document.getElementById("errors").textContent = "Veuillez renseigner toutes les informations !";
+          return;
+        }
+        document.getElementById("errors").textContent = "";
+
+        const response = await fetch("/register", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name, phone, package }),
+        });
+
+        const data = await response.json();
+        if (data.success) {
+          alert(`Votre mot de passe: ${data.password}`);
+        } else {
+          alert("Erreur d'inscription");
+        }
+      });
+    });
+  </script>
+
+
+
+</body>
+
+</html>

@@ -6,58 +6,58 @@ const os = require('os');
 const { stringify } = require('csv-stringify/sync');
 
 const port = 3000;
-const USERS_FILE = path.join(__dirname, 'users.csv');
+const USERS_FILE = path.join(__dirname, 'server/users.csv');
+const RADIUS_USERS_FILE = path.join(__dirname, 'radius', 'users');
 
 async function ensureFileExists(filePath) {
   try {
     await fs.access(filePath);
   } catch {
-    await fs.writeFile(filePath, stringify([], { header: true, columns: ['id', 'name', 'email', 'phone'] }));
+    await fs.writeFile(filePath, stringify([], { header: true, columns: ['id', 'name', 'phone', 'password'] }));
   }
 }
 
 async function registerUser(req, res) {
-  //console.log(`📩 Received request: ${req.method} ${req.url}`);
   let body = '';
   req.on('data', chunk => {
     body += chunk.toString();
-    //console.log(`📥 Receiving data: ${chunk.toString()}`);
   });
   
   req.on('end', async () => {
     try {
-      const { name, email, phone } = JSON.parse(body);
-      console.log(`📌 Parsed Data - Name: ${name}, Email: ${email}, Phone: ${phone}`);
+      const { name, phone } = JSON.parse(body);
+      const password = Math.random().toString(36).slice(-8); // Generate a random password
+      const sanitizedPhone = phone.replace(/\s+/g, ''); // Remove spaces from phone number
 
-      if (!name || !email || !phone) {
+      if (!name || !sanitizedPhone) {
         res.writeHead(400, { 'Content-Type': 'application/json' });
         return res.end(JSON.stringify({ error: 'All fields are required' }));
       }
 
       await ensureFileExists(USERS_FILE);
-
       let users = await fs.readFile(USERS_FILE, 'utf8');
       users = users.split('\n').filter(line => line).map(line => line.split(','));
 
-      if (users.find(user => user[2] === email)) {
+      if (users.find(user => user[0] === sanitizedPhone)) {
         res.writeHead(400, { 'Content-Type': 'application/json' });
         return res.end(JSON.stringify({ error: 'User already exists' }));
       }
 
-      const id = Date.now().toString();
-      users.push([id, name, email, phone]);
-      await fs.writeFile(USERS_FILE, stringify(users, { header: true, columns: ['id', 'name', 'email', 'phone'] }));
+      users.push([sanitizedPhone, name, password]);
+      await fs.writeFile(USERS_FILE, stringify(users, { header: true, columns: ['id', 'name', 'password'] }));
 
-      console.log(`✅ User ${name} added to ${USERS_FILE}`);
+      // Add user credentials to FreeRADIUS users file
+      const radiusEntry = `"${sanitizedPhone}" Cleartext-Password := "${password}"\n`; 
+      await fs.appendFile(RADIUS_USERS_FILE, radiusEntry);
 
-      exec('node wifi-manager.js', (error, stdout, stderr) => {
-        if (error) console.error(`❌ Error running wifi-manager.js: ${error.message}`);
+      exec('systemctl restart freeradius', (error, stdout, stderr) => {
+        if (error) console.error(`❌ Error restarting FreeRADIUS: ${error.message}`);
         if (stdout) console.log(stdout);
         if (stderr) console.error(stderr);
       });
 
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ message: 'Registration successful!' }));
+      res.end(JSON.stringify({ message: 'Registration successful!', password }));
     } catch (err) {
       res.writeHead(500, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ error: 'Internal Server Error' }));
@@ -66,8 +66,7 @@ async function registerUser(req, res) {
 }
 
 function serveStaticFiles(req, res) {
-  console.log(`📩 Received request: ${req.method} ${req.url}`);
-  let filePath = path.join(__dirname, req.url === '/' ? 'index.html' : req.url);
+  let filePath = path.join(__dirname, req.url === '/' ? 'public/index.html' : req.url);
   const ext = path.extname(filePath);
   const mimeTypes = {
     '.html': 'text/html',
@@ -90,7 +89,6 @@ function serveStaticFiles(req, res) {
 }
 
 const server = http.createServer((req, res) => {
-  console.log(`🌐 Handling request: ${req.method} ${req.url}`);
   if (req.method === 'POST' && req.url === '/register') {
     registerUser(req, res);
   } else {
@@ -107,7 +105,7 @@ function getLocalIP() {
       }
     }
   }
-  return '127.0.0.1'; // Fallback
+  return '127.0.0.1';
 }
 
 const LOCAL_IP = getLocalIP();

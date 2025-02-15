@@ -5,9 +5,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>WiFi Portal</title>
-  <link rel="stylesheet" href="assets/css/main.css">
-  <script src="./assets/scripts/tailwind.js"></script>
-  <script src="./assets/scripts/typescript.min.js"></script>
+  <link rel="stylesheet" href="/public/assets/css/main.css">
+  <script src="/public/assets/scripts/tailwind.js"></script>
+  <script src="/public/assets/scripts/typescript.min.js"></script>
   <script>
     async function login(event) {
       event.preventDefault();
@@ -98,13 +98,14 @@
         </tbody>
       </table>
       <div class="flex justify-center gap-4 py-4 pt-12 ">
-        <a href="register.html"
+        <a href="public/register.html"
           class="button p-4 py-2 bg-emerald-700 text-white rounded-md cursor-pointer hover:scale-104 transition-all shadow-md ">Créer
           mon compte</a>
-        <a href="login.html"
+        <a href="public/login.html"
           class="button p-4 py-2 bg-white text-black rounded-md cursor-pointer hover:scale-104 transition-all shadow-md ">J'ai
           déjà
-          un compte</a>
+          un compte
+        </a>
       </div>
     </div>
     <div id="footer-placeholder" class="w-full max-w-full flex justify-center items-center py-5 ">
@@ -112,7 +113,7 @@
   </div>
 
   <script>
-    fetch('/components/footer.html')
+    fetch('/public/components/footer.html')
       .then(response => response.text())
       .then(data => {
         document.getElementById('footer-placeholder').innerHTML = data;
