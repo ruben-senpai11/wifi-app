@@ -1,8 +1,12 @@
 
 .container{
   background-color: #98888858;
-  background-color: #2a2a2a44;
+  background-color: #2a2a2a3a;
   /* color: black; */
+}
+button:hover, a.button:hover{
+  color: yellow;
+  background-color: purple;
 }
 table {
   width: 100%;

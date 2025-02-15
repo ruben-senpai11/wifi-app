@@ -5,13 +5,14 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>WiFi Portal</title>
+  <link rel="shortcut icon" href="/icon.png" type="image/x-icon">
   <link rel="stylesheet" href="/public/assets/css/main.css">
   <script src="/public/assets/scripts/tailwind.js"></script>
   <script src="/public/assets/scripts/checkout.js"></script>
 </head>
 
 <body>
-  <div class="flex flex-col items-center justify-center min-h-screen bg-fuchsia-700 p-4 ">
+  <div class="flex flex-col items-center justify-center min-h-screen bg-sky-700 p-4 ">
     <!-- <h1>Your WIFI Portal</h1> -->
     <div class="containerr max-w-sm w-full p-7 py-6 bg-white shadow-lg rounded-lg ">
       <h2 class="text-2xl font-bold mb-4">Créer mon compte </h2>
@@ -55,7 +56,7 @@
         <div class="mb-4">
           <label class="block text-sm text-slate-500 font-medium">
             Montant:
-            <span id="amount" class="text-emerald-500 font-bold ">200 FCFA</span>
+            <span id="amount" class="text-purple-700c font-bold ">200 FCFA</span>
           </label>
         </div>
 
@@ -63,7 +64,7 @@
 
 
         <button id="pay" type="submit"
-          class="button w-full bg-blue-500 text-white py-2 cursor-pointer rounded hover:bg-emerald-400"
+          class="button w-full bg-yellow-400 text-black py-2 cursor-pointer rounded hover:bg-emerald-400"
           data-transaction-amount="200" data-transaction-description="Acheter mon produit"
           data-customer-email="johndoe@gmail.com" data-customer-lastname="Doe">
           Payer 200 FCFA
@@ -121,7 +122,8 @@
         }
         document.getElementById("errors").textContent = "";
 
-        const response = await fetch("/register", {
+        console.log(window.location.origin + "/register");
+        const response = await fetch(window.location.origin + "/register", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ name, phone, package }),

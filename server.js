@@ -84,17 +84,22 @@ function serveStaticFiles(req, res) {
     })
     .catch(err => {
       res.writeHead(err.code === 'ENOENT' ? 404 : 500, { 'Content-Type': 'text/html' });
-      res.end(err.code === 'ENOENT' ? '<h1>404 Page not found!</h1>' : `Server Error: ${err.code}`, 'utf-8');
+      res.end(err.code === 'ENOENT' ? '<h1>404 Page not found for your file!</h1>' : `Server Error: ${err.code}`, 'utf-8');
     });
 }
 
 const server = http.createServer((req, res) => {
+  //console.log(`📩 Received request: ${req.method} ${req.url}`); // Log every request
+
   if (req.method === 'POST' && req.url === '/register') {
+    console.log("✅ Processing Registration");
     registerUser(req, res);
   } else {
+  //  console.log("🔎 Serving Static File:", req.url);
     serveStaticFiles(req, res);
   }
 });
+
 
 function getLocalIP() {
   const interfaces = os.networkInterfaces();
