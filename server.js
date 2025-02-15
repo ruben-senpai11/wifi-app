@@ -18,18 +18,24 @@ async function ensureFileExists(filePath) {
 }
 
 async function registerUser(req, res) {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, GET, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+  if (req.method === 'OPTIONS') {
+    res.writeHead(204);
+    return res.end();
+  }
+
   let body = '';
-  req.on('data', chunk => {
-    body += chunk.toString();
-  });
-  
+  req.on('data', chunk => { body += chunk.toString(); });
+
   req.on('end', async () => {
     try {
-      const { name, phone } = JSON.parse(body);
-      const password = Math.random().toString(36).slice(-8); // Generate a random password
-      const sanitizedPhone = phone.replace(/\s+/g, ''); // Remove spaces from phone number
+      const { name, phone, package } = JSON.parse(body);
+      const password = Math.random().toString(36).slice(-8);
 
-      if (!name || !sanitizedPhone) {
+      if (!name || !phone || !package) {
         res.writeHead(400, { 'Content-Type': 'application/json' });
         return res.end(JSON.stringify({ error: 'All fields are required' }));
       }
@@ -38,32 +44,47 @@ async function registerUser(req, res) {
       let users = await fs.readFile(USERS_FILE, 'utf8');
       users = users.split('\n').filter(line => line).map(line => line.split(','));
 
-      if (users.find(user => user[0] === sanitizedPhone)) {
-        res.writeHead(400, { 'Content-Type': 'application/json' });
-        return res.end(JSON.stringify({ error: 'User already exists' }));
+      // Remove spaces from phone number
+      const cleanPhone = phone.replace(/\s+/g, '');
+
+      if (users.some(user => user[1] === phone)) {  // Checking phone instead of email
+        res.writeHead(400, { "Content-Type": "application/json" });
+        return res.end(JSON.stringify({ error: "Numéro de téléphone déjà enregistré" }));
       }
 
-      users.push([sanitizedPhone, name, password]);
-      await fs.writeFile(USERS_FILE, stringify(users, { header: true, columns: ['id', 'name', 'password'] }));
 
-      // Add user credentials to FreeRADIUS users file
-      const radiusEntry = `"${sanitizedPhone}" Cleartext-Password := "${password}"\n`; 
+      const id = Date.now().toString();
+      users.push([id, name, cleanPhone, package, password]);
+      await fs.writeFile(USERS_FILE, stringify(users, { header: true, columns: ['id', 'name', 'phone', 'package', 'password'] }));
+
+      // Add user to FreeRADIUS
+      const radiusEntry = `"${cleanPhone}" Cleartext-Password := "${password}"\n`;
       await fs.appendFile(RADIUS_USERS_FILE, radiusEntry);
 
-      exec('systemctl restart freeradius', (error, stdout, stderr) => {
-        if (error) console.error(`❌ Error restarting FreeRADIUS: ${error.message}`);
-        if (stdout) console.log(stdout);
-        if (stderr) console.error(stderr);
-      });
+      console.log("✅ Added user to FreeRADIUS, restarting...");
 
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ message: 'Registration successful!', password }));
+      // Wait for FreeRADIUS to restart before responding
+      exec('sudo systemctl restart freeradius', (error, stdout, stderr) => {
+        if (error) {
+          console.error(`❌ FreeRADIUS restart error: ${error.message}`);
+          res.writeHead(500, { 'Content-Type': 'application/json' });
+          return res.end(JSON.stringify({ error: 'FreeRADIUS failed to restart' }));
+        }
+
+        console.log(stdout);
+        console.error(stderr);
+
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ message: 'Registration successful!', password }));
+      });
     } catch (err) {
+      console.error("❌ Registration Error:", err);
       res.writeHead(500, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ error: 'Internal Server Error' }));
     }
   });
 }
+
 
 function serveStaticFiles(req, res) {
   let filePath = path.join(__dirname, req.url === '/' ? 'public/index.html' : req.url);

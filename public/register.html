@@ -56,18 +56,20 @@
         <div class="mb-4">
           <label class="block text-sm text-slate-500 font-medium">
             Montant:
-            <span id="amount" class="text-purple-700c font-bold ">200 FCFA</span>
+            <span id="amount" class="text-cyan-600 font-bold ">200 FCFA</span>
           </label>
         </div>
 
         <p id="errors" class="text-red-500 text-sm pb-4 "></p>
 
 
-        <button id="pay" type="submit"
-          class="button w-full bg-yellow-400 text-black py-2 cursor-pointer rounded hover:bg-emerald-400"
-          data-transaction-amount="200" data-transaction-description="Acheter mon produit"
-          data-customer-email="johndoe@gmail.com" data-customer-lastname="Doe">
-          Payer 200 FCFA
+        <button id="pay" type="submit" class="button w-full py-2 cursor-pointer rounded" data-transaction-amount="200"
+          data-transaction-description="Acheter mon produit" data-customer-email="johndoe@gmail.com"
+          data-customer-lastname="Doe">
+          Activer
+          <span class="package font-bold ">
+            Kwaboo
+          </span>
         </button>
 
         <!-- <button id="pay" type="button"
@@ -99,46 +101,56 @@
       .catch(error => console.error('Error loading footer:', error));
   </script>
 
+<script>
+  async function register(event) {
+    event.preventDefault(); // Stop the form from submitting normally
+
+    const nameInput = document.getElementById("name");
+    const phoneInput = document.getElementById("tel");
+    const packageInput = document.getElementById("package");
+    const errorContainer = document.getElementById("errors");
+
+    const name = nameInput.value.trim();
+    const phone = phoneInput.value.replace(/\s+/g, ""); // Remove spaces from phone number
+    const package = packageInput.value;
+
+    errorContainer.textContent = ""; // Clear previous errors
+
+    if (!name || !phone || !package) {
+      errorContainer.textContent = "Tous les champs sont obligatoires.";
+      return;
+    }
+
+    try {
+      console.log("Sending data:", { name, phone });
+      const response = await fetch(window.location.origin + "/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, phone, package }),
+      });
+
+      //console.log("Raw response:", response);  // Log raw response
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Erreur d'inscription");
+      }
+
+      const data = await response.json();
+      console.log("Response JSON:", data);  // Log the response data
+
+      alert(`Inscription réussie! Votre mot de passe: ${data.password}`);
+    } catch (error) {
+      console.error("Error occurred:", error);  // Log the error
+      errorContainer.textContent = error.message;
+    }
+  }
+</script>
+
 
   <script>
-    document.addEventListener("DOMContentLoaded", () => {
-      const nameInput = document.getElementById("name");
-//      const emailInput = document.getElementById("email");
-      const telInput = document.getElementById("tel");
-      const selectElement = document.getElementById("package");
-      const payButton = document.getElementById("pay");
-
-      payButton.addEventListener("click", async (event) => {
-        event.preventDefault();
-
-        const name = nameInput.value;
-//        const email = emailInput.value;
-        const phone = telInput.value;
-        const package = selectElement.value;
-
-        if (!name || !phone) {
-          document.getElementById("errors").textContent = "Veuillez renseigner toutes les informations !";
-          return;
-        }
-        document.getElementById("errors").textContent = "";
-
-        console.log(window.location.origin + "/register");
-        const response = await fetch(window.location.origin + "/register", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ name, phone, package }),
-        });
-
-        const data = await response.json();
-        if (data.success) {
-          alert(`Votre mot de passe: ${data.password}`);
-        } else {
-          alert("Erreur d'inscription");
-        }
-      });
-    });
+    document.getElementById("registerForm").addEventListener("submit", register);
   </script>
-
 
 
 </body>

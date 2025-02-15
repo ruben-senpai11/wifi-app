@@ -1,13 +1,22 @@
-
+/* exportdefaultPercocets99 */
 .container{
   background-color: #98888858;
   background-color: #2a2a2a3a;
   /* color: black; */
 }
-button:hover, a.button:hover{
+button, a.button:hover{
   color: yellow;
   background-color: purple;
+  padding-top: 11px;
+  padding-bottom: 11px;
 }
+button:hover{
+  background-color: rgb(255, 196, 0);
+  color: black;
+  transform: scale(1.02);
+  transition: all .3s ease;
+}
+
 table {
   width: 100%;
   border-collapse: collapse;  
