@@ -17,11 +17,11 @@ async function ensureFileExists(filePath) {
 }
 
 async function registerUser(req, res) {
-  console.log(`📩 Received request: ${req.method} ${req.url}`);
+  //console.log(`📩 Received request: ${req.method} ${req.url}`);
   let body = '';
   req.on('data', chunk => {
     body += chunk.toString();
-    console.log(`📥 Receiving data: ${chunk.toString()}`);
+    //console.log(`📥 Receiving data: ${chunk.toString()}`);
   });
   
   req.on('end', async () => {

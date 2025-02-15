@@ -7,7 +7,7 @@
   <title>WiFi Portal</title>
   <link rel="stylesheet" href="assets/css/main.css">
   <script src="./assets/scripts/tailwind.js"></script>
-  <script src="https://cdn.fedapay.com/checkout.js?v=1.1.7"></script>
+  <script src="./assets/scripts/checkout.js"></script>
 </head>
 
 <body>
@@ -46,7 +46,9 @@
             <option data-amount="200" value="kwaabo">Kwaabo - 2heures - Validité 1 jour</option>
             <option data-amount="500" value="waaba">Waaba - 12h - Validité 3 jours</option>
             <option data-amount="1000" value="semaine">Semaine - 24h - Validité 7 jours</option>
-            <option data-amount="3000" value="mois">Mois - 120h - Validité 30 jours</option>
+            <option data-amount="2000" value="2semaines">Semaines - 55h - Validité 14 jours</option>
+            <option data-amount="3500" value="mois">Mois - 120h - Validité 30 jours</option>
+            <option data-amount="5000" value="illimite">Mois - Illimité - Validité 30 jours</option>
           </select>
         </div>
 
@@ -72,17 +74,20 @@
         >
           Payer 100 FCFA
         </button> -->
-        <p class="mt-3 text-sm text-gray-500">
+        <!-- <p class="mt-3 text-sm text-gray-500">
           Vous avez dejà compte?
           <br>
           <a class="text-md text-blue-700 hover:text-emerald-500" href="login.html">Me connecter</a>
-        </p>
+        </p> -->
       </form>
 
     </div>
+    <div id="embed" style="width: 500px; height: 420px"></div> 
     <div id="footer-placeholder" class="w-full max-w-full flex justify-center items-center py-5 ">
     </div>
   </div>
+
+
 
   <script>
     fetch('/components/footer.html')
@@ -114,10 +119,10 @@
       });
 
       // Initialize FedaPay widget
-      let widget = FedaPay.init({
+    /*  let widget = FedaPay.init({
         public_key: 'pk_live_YSlxSSpIrQssqOUVEOSD-iNe'
       });
-
+    */
       // Handle payment button click
       payButton.addEventListener('click', (event) => {
         event.preventDefault(); // Prevent form submission
@@ -133,8 +138,10 @@
 
         document.getElementById('errors').textContent = ''; // Clear errors
 
+        console.log("initiing pay");
         // Pass dynamic attributes to FedaPay widget
-        widget.open({
+   
+   /*     widget.open({
           transaction: {
             amount: parseInt(amount),
             description: `Forfait: ${packageName}`,
@@ -144,11 +151,24 @@
             phone_number: telInput.value,
           }
         });
+    */
+        FedaPay.init({
+        public_key: 'pk_live_YSlxSSpIrQssqOUVEOSD',
+        transaction: {
+          amount: parseInt(amount),
+          description: `Forfait: ${packageName}`,
+        },
+        customer: {
+          lastname: 'nameInput.value',
+          phone_number: 'telInput.value',
+        },
+        container: '#embed'
+     });  
 
         console.log("Payment data:", {
           name: nameInput.value,
           phone: telInput.value,
-          amount,
+          amount, amount, 
           package: packageName
         });
       });

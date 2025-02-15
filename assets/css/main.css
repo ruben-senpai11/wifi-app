@@ -59,9 +59,9 @@ td:nth-child(4){
   }
 
   .footer{
-    padding: .5rem 1rem;
-    gap: 5px;
-    font-size: 14px;
+    padding: 1rem 1rem;
+    gap: 15px;
+    font-size: 16px;
     box-shadow: 0 0 6px green;
   }
 }
