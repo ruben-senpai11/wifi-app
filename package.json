@@ -1,6 +1,10 @@
 {
+  "name": "wifi-portal",
+  "version": "1.0.0",
+  "description": "WiFi Portal Application",
   "main": "main.js",
   "scripts": {
+    "run dev": "nodemon server.js",
     "start": "electron . --trace-warnings",
     "build": "electron-packager . WiFi-Portal --platform=win32 --arch=x64 --out=dist --overwrite"
   },
@@ -10,19 +14,16 @@
     "crypto": "^1.0.1",
     "csv-parser": "^3.2.0",
     "csv-stringify": "^6.5.2",
-    "dgram": "^1.0.1",
-    "docker": "^0.2.14",
     "dotenv": "^16.4.7",
     "electron-sudo": "^4.0.12",
     "express": "^4.21.2",
     "fedapay": "^1.2.4",
     "fs": "^0.0.1-security",
-    "mysql2": "^3.12.0",
-    "path": "^0.12.7",
-    "radius": "^1.1.4"
+    "path": "^0.12.7"
   },
   "devDependencies": {
-    "electron": "^34.2.0",
-    "nodemon": "^3.1.9"
-  }
+    "electron-packager": "^15.0.0"
+  },
+  "author": "Ruben HONFOVOU",
+  "license": "Proprietary"
 }
