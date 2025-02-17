@@ -7,17 +7,21 @@ const { stringify } = require('csv-stringify/sync');
 
 const port = 3000;
 const USERS_FILE = path.join(__dirname, 'server/users.csv');
-const RADIUS_USERS_FILE = path.join(__dirname, 'radius', 'users');
+const RADIUS_USERS_FILE = path.join(__dirname, 'radius/users');
+const RADIUS_CONTAINER = 'freeradius'; // Change this if your container has a different name
+const RADIUS_SECRET = 'testing123';
 
 async function ensureFileExists(filePath) {
   try {
     await fs.access(filePath);
   } catch {
-    await fs.writeFile(filePath, stringify([], { header: true, columns: ['id', 'name', 'phone', 'password'] }));
+    await fs.writeFile(filePath, stringify([], { header: true, columns: ['id', 'name', 'phone', 'package', 'password'] }));
   }
 }
 
 async function registerUser(req, res) {
+  console.log("✅ Processing Registration...");
+
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, GET, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -43,39 +47,43 @@ async function registerUser(req, res) {
       await ensureFileExists(USERS_FILE);
       let users = await fs.readFile(USERS_FILE, 'utf8');
       users = users.split('\n').filter(line => line).map(line => line.split(','));
-
-      // Remove spaces from phone number
+      
       const cleanPhone = phone.replace(/\s+/g, '');
-
-      if (users.some(user => user[1] === phone)) {  // Checking phone instead of email
-        res.writeHead(400, { "Content-Type": "application/json" });
-        return res.end(JSON.stringify({ error: "Numéro de téléphone déjà enregistré" }));
+      if (users.some(user => user[2] === cleanPhone)) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        return res.end(JSON.stringify({ error: 'Phone number already registered' }));
       }
-
 
       const id = Date.now().toString();
       users.push([id, name, cleanPhone, package, password]);
       await fs.writeFile(USERS_FILE, stringify(users, { header: true, columns: ['id', 'name', 'phone', 'package', 'password'] }));
 
-      // Add user to FreeRADIUS
+      // Add user to FreeRADIUS inside Docker
       const radiusEntry = `"${cleanPhone}" Cleartext-Password := "${password}"\n`;
       await fs.appendFile(RADIUS_USERS_FILE, radiusEntry);
 
-      console.log("✅ Added user to FreeRADIUS, restarting...");
-
-      // Wait for FreeRADIUS to restart before responding
-      exec('sudo systemctl restart freeradius', (error, stdout, stderr) => {
-        if (error) {
-          console.error(`❌ FreeRADIUS restart error: ${error.message}`);
+      console.log("🔄 Restarting FreeRADIUS in Docker...");
+      exec(`docker exec ${RADIUS_CONTAINER} service freeradius restart`, async (error, stdout, stderr) => {
+        if (error || stderr) {
+          console.error(`❌ FreeRADIUS restart error: ${error || stderr}`);
           res.writeHead(500, { 'Content-Type': 'application/json' });
           return res.end(JSON.stringify({ error: 'FreeRADIUS failed to restart' }));
         }
 
-        console.log(stdout);
-        console.error(stderr);
+        console.log("✅ FreeRADIUS restarted successfully!");
+        
+        // Verify user authentication
+        exec(`docker exec ${RADIUS_CONTAINER} radtest "${cleanPhone}" "${password}" localhost 0 ${RADIUS_SECRET}`, (authError, authStdout, authStderr) => {
+          if (authError || authStderr) {
+            console.error(`❌ Authentication test failed: ${authError || authStderr}`);
+            res.writeHead(500, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ error: 'User registration failed authentication' }));
+          }
 
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ message: 'Registration successful!', password }));
+          console.log("✅ User authenticated successfully!");
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ message: 'Registration successful!', password }));
+        });
       });
     } catch (err) {
       console.error("❌ Registration Error:", err);
@@ -84,7 +92,6 @@ async function registerUser(req, res) {
     }
   });
 }
-
 
 function serveStaticFiles(req, res) {
   let filePath = path.join(__dirname, req.url === '/' ? 'public/index.html' : req.url);
@@ -98,29 +105,24 @@ function serveStaticFiles(req, res) {
   };
   const contentType = mimeTypes[ext] || 'text/plain';
 
-  fs.readFile(filePath)
+  fs.readFile(filePath, 'utf-8')
     .then(content => {
       res.writeHead(200, { 'Content-Type': contentType });
       res.end(content, 'utf-8');
     })
     .catch(err => {
       res.writeHead(err.code === 'ENOENT' ? 404 : 500, { 'Content-Type': 'text/html' });
-      res.end(err.code === 'ENOENT' ? '<h1>404 Page not found for your file!</h1>' : `Server Error: ${err.code}`, 'utf-8');
+      res.end(err.code === 'ENOENT' ? '<h1>404 Page Not Found</h1>' : `Server Error: ${err.code}`, 'utf-8');
     });
 }
 
 const server = http.createServer((req, res) => {
-  //console.log(`📩 Received request: ${req.method} ${req.url}`); // Log every request
-
   if (req.method === 'POST' && req.url === '/register') {
-    console.log("✅ Processing Registration");
     registerUser(req, res);
   } else {
-  //  console.log("🔎 Serving Static File:", req.url);
     serveStaticFiles(req, res);
   }
 });
-
 
 function getLocalIP() {
   const interfaces = os.networkInterfaces();

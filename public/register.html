@@ -47,7 +47,7 @@
             <option data-amount="200" value="kwaabo">Kwaabo - 2heures - Validité 1 jour</option>
             <option data-amount="500" value="waaba">Waaba - 12h - Validité 3 jours</option>
             <option data-amount="1000" value="semaine">Semaine - 24h - Validité 7 jours</option>
-            <option data-amount="2000" value="2semaines">Semaines - 55h - Validité 14 jours</option>
+            <option data-amount="2000" value="2Semaines">Semaines - 55h - Validité 14 jours</option>
             <option data-amount="3500" value="mois">Mois - 120h - Validité 30 jours</option>
             <option data-amount="5000" value="illimite">Mois - Illimité - Validité 30 jours</option>
           </select>
@@ -66,8 +66,8 @@
         <button id="pay" type="submit" class="button w-full py-2 cursor-pointer rounded" data-transaction-amount="200"
           data-transaction-description="Acheter mon produit" data-customer-email="johndoe@gmail.com"
           data-customer-lastname="Doe">
-          Activer
-          <span class="package font-bold ">
+          Activer mon
+          <span id="packageName" class="font-bold capitalize ">
             Kwaboo
           </span>
         </button>
@@ -91,7 +91,6 @@
   </div>
 
 
-
   <script>
     fetch('/public/components/footer.html')
       .then(response => response.text())
@@ -101,51 +100,118 @@
       .catch(error => console.error('Error loading footer:', error));
   </script>
 
-<script>
-  async function register(event) {
-    event.preventDefault(); // Stop the form from submitting normally
 
-    const nameInput = document.getElementById("name");
-    const phoneInput = document.getElementById("tel");
-    const packageInput = document.getElementById("package");
-    const errorContainer = document.getElementById("errors");
+  <script>
 
-    const name = nameInput.value.trim();
-    const phone = phoneInput.value.replace(/\s+/g, ""); // Remove spaces from phone number
-    const package = packageInput.value;
+    document.addEventListener('DOMContentLoaded', () => {
+      const nameInput = document.getElementById('name');
+      //const emailInput = document.getElementById('email');
+      const telInput = document.getElementById('tel');
+      const selectElement = document.getElementById('package');
+      const amountInput = document.getElementById('amount');
+      const packageLabel = document.getElementById('packageName');
+      const payButton = document.getElementById('pay--');
 
-    errorContainer.textContent = ""; // Clear previous errors
+      // Update payment amount when package selection changes
+      selectElement.addEventListener('change', () => {
+        const selectedOption = selectElement.options[selectElement.selectedIndex];
+        const amount = selectedOption.dataset.amount || '0';
+        const package = selectedOption.value;
 
-    if (!name || !phone || !package) {
-      errorContainer.textContent = "Tous les champs sont obligatoires.";
-      return;
-    }
-
-    try {
-      console.log("Sending data:", { name, phone });
-      const response = await fetch(window.location.origin + "/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, phone, package }),
+        console.log('amountInput: ', amountInput);
+        amountInput.textContent = `${amount} FCFA`;
+        packageLabel.textContent = package;
       });
 
-      //console.log("Raw response:", response);  // Log raw response
+      // Initialize FedaPay widget
+      let widget = FedaPay.init({
+        public_key: 'pk_live_YSlxSSpIrQssqOUVEOSD-iNe'
+      });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Erreur d'inscription");
+      // Handle payment button click
+      payButton.addEventListener('click', (event) => {
+        event.preventDefault(); // Prevent form submission
+
+        const selectedOption = selectElement.options[selectElement.selectedIndex];
+        const amount = selectedOption.dataset.amount || '0';
+        const packageName = selectedOption.value;
+
+        if (!nameInput.value || !telInput.value) {
+          document.getElementById('errors').textContent = "Veuillez renseigner toutes les informations !";
+          return;
+        }
+
+        document.getElementById('errors').textContent = ''; // Clear errors
+
+        // Pass dynamic attributes to FedaPay widget
+        widget.open({
+          transaction: {
+            amount: parseInt(amount),
+            description: `Forfait: ${packageName}`,
+          },
+          customer: {
+            lastname: nameInput.value,
+            phone_number: telInput.value,
+          }
+        });
+
+        console.log("Payment data:", {
+          name: nameInput.value,
+          phone: telInput.value,
+          amount,
+          package: packageName
+        });
+      });
+    });
+
+  </script>
+
+
+  <script>
+    async function register(event) {
+      event.preventDefault(); // Stop the form from submitting normally
+
+      const nameInput = document.getElementById("name");
+      const phoneInput = document.getElementById("tel");
+      const packageInput = document.getElementById("package");
+      const errorContainer = document.getElementById("errors");
+
+      const name = nameInput.value.trim();
+      const phone = phoneInput.value.replace(/\s+/g, ""); // Remove spaces from phone number
+      const package = packageInput.value;
+
+      errorContainer.textContent = ""; // Clear previous errors
+
+      if (!name || !phone || !package) {
+        errorContainer.textContent = "Tous les champs sont obligatoires.";
+        return;
       }
 
-      const data = await response.json();
-      console.log("Response JSON:", data);  // Log the response data
+      try {
+        console.log("Sending data:", { name, phone });
+        const response = await fetch(window.location.origin + "/register", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name, phone, package }),
+        });
 
-      alert(`Inscription réussie! Votre mot de passe: ${data.password}`);
-    } catch (error) {
-      console.error("Error occurred:", error);  // Log the error
-      errorContainer.textContent = error.message;
+        //console.log("Raw response:", response);  // Log raw response
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || "Erreur d'inscription");
+        }
+
+        const data = await response.json();
+        console.log("Response JSON:", data);  // Log the response data
+
+        alert(`Inscription réussie! Votre mot de passe: ${data.password}`);
+      } catch (error) {
+        console.error("Error occurred:", error);  // Log the error
+        errorContainer.textContent = error.message;
+      }
     }
-  }
-</script>
+  </script>
 
 
   <script>

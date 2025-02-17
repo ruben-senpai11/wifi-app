@@ -9,35 +9,6 @@
   <link rel="stylesheet" href="/public/assets/css/main.css">
   <script src="/public/assets/scripts/tailwind.js"></script>
   <script src="/public/assets/scripts/typescript.min.js"></script>
-  <script>
-    async function login(event) {
-      event.preventDefault();
-
-      const emailInput = document.getElementById('email');
-      const passwordInput = document.getElementById('password');
-      const errorContainer = document.getElementById('errors');
-
-      const email = emailInput.value;
-      const password = passwordInput.value;
-
-      errorContainer.textContent = '';
-
-      if (!email || !password) {
-        errorContainer.textContent = 'Both email and password are required.';
-        return;
-      }
-
-      if (email && password) {
-        errorContainer.textContent = 'Both email and password are required.';
-        return;
-      }
-
-      console.log("Connected");
-    }
-    function handleButton(action) {
-
-    }
-  </script>
   <style type="text/tailwindcss">
     svg{
       width: 70px;
@@ -129,10 +100,10 @@
         </tbody>
       </table>
       <div class="flex justify-center gap-4 py-4 pt-12 ">
-        <a href="public/register.html"
+        <a href="/public/register.html"
           class="button p-4 py-2 bg-yellow-400 text-black rounded-md cursor-pointer hover:scale-104 transition-all shadow-md ">Créer
           mon compte</a>
-        <a href="public/login.html"
+        <a href="/public/login.html"
           class="button p-4 py-2 bg-white text-black rounded-md cursor-pointer hover:scale-104 transition-all shadow-md ">J'ai
           déjà
           un compte

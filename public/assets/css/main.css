@@ -7,8 +7,10 @@
 button, a.button:hover{
   color: yellow;
   background-color: purple;
-  padding-top: 11px;
-  padding-bottom: 11px;
+}
+button{
+  padding-top: 10px;
+  padding-bottom: 10px;
 }
 button:hover{
   background-color: rgb(255, 196, 0);
