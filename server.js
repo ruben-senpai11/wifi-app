@@ -8,7 +8,7 @@ const { stringify } = require('csv-stringify/sync');
 const port = 3000;
 const USERS_FILE = path.join(__dirname, 'server/users.csv');
 const RADIUS_USERS_FILE = path.join(__dirname, 'radius/users');
-const RADIUS_CONTAINER = 'freeradius'; // Change this if your container has a different name
+const RADIUS_CONTAINER = 'freeradius-1'; // Change this if your container has a different name
 const RADIUS_SECRET = 'testing123';
 
 async function ensureFileExists(filePath) {
