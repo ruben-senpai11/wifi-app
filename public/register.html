@@ -182,13 +182,28 @@
 
       errorContainer.textContent = ""; // Clear previous errors
 
-      if (!name || !phone || !package) {
-        errorContainer.textContent = "Tous les champs sont obligatoires.";
+      if (!name) {
+        errorContainer.textContent = "Veuillez saisir votre nom";
+        return;
+      }
+      if (!phone) {
+        errorContainer.textContent = "Veuillez saisir votre numéro de téléphone.";
+        return;
+      }
+      if (phone.length<8) {
+        errorContainer.textContent = "Numéro de téléphone trop court";
+        return;
+      } else if(phone.length>16){
+        errorContainer.textContent = "Numéro de téléphone trop long";
+        return;
+      }
+      if (!package) {
+        errorContainer.textContent = "Veuillez choisir un forfait.";
         return;
       }
 
       try {
-        console.log("Sending data:", { name, phone });
+        // console.log("Sending data:", { name, phone });
         const response = await fetch(window.location.origin + "/register", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -205,7 +220,7 @@
         const data = await response.json();
         console.log("Response JSON:", data);  // Log the response data
 
-        alert(`Inscription réussie! Votre mot de passe: ${data.password}`);
+        alert(`Inscription réussie! Votre mot de passe est: ${data.password} \nVous pouvez faire une capture d'écran et l'écrire quelque part \n\n${data.password}`);
       } catch (error) {
         console.error("Error occurred:", error);  // Log the error
         errorContainer.textContent = error.message;
