@@ -137,3 +137,130 @@ const LOCAL_IP = getLocalIP();
 server.listen(port, LOCAL_IP, () => {
   console.log(`🚀 Server running at http://${LOCAL_IP}:${port}`);
 });
+
+
+
+
+/*
+const http = require('http');  // Use 'http' instead of 'https'
+const fs = require('fs');
+const path = require('path');
+const os = require('os');
+const { stringify } = require('csv-stringify/sync');
+
+const port = 80;  // Port 80 for HTTP
+const USERS_FILE = path.join(__dirname, 'server/users.csv');
+
+const server = http.createServer((req, res) => {
+  if (req.method === 'POST' && req.url === '/register') {
+    registerUser(req, res);
+  } else {
+    serveStaticFiles(req, res);
+  }
+});
+
+async function ensureFileExists(filePath) {
+  try {
+    await fs.promises.access(filePath);
+  } catch {
+    await fs.promises.writeFile(filePath, stringify([], { header: true, columns: ['id', 'name', 'phone', 'package', 'password'] }));
+  }
+}
+
+async function registerUser(req, res) {
+  console.log("✅ Processing Registration...");
+
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, GET, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+  if (req.method === 'OPTIONS') {
+    res.writeHead(204);
+    return res.end();
+  }
+
+  let body = '';
+  req.on('data', chunk => { body += chunk.toString(); });
+
+  req.on('end', async () => {
+    try {
+      const { name, phone, package } = JSON.parse(body);
+      const password = Math.random().toString(36).slice(-8);
+
+      if (!name || !phone || !package) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        return res.end(JSON.stringify({ error: 'All fields are required' }));
+      }
+
+      await ensureFileExists(USERS_FILE);
+      let users = await fs.promises.readFile(USERS_FILE, 'utf8');
+      users = users.split('\n').filter(line => line).map(line => line.split(','));
+      
+      const cleanPhone = phone.replace(/\s+/g, '');
+      if (users.some(user => user[2] === cleanPhone)) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        return res.end(JSON.stringify({ error: 'Phone number already registered' }));
+      }
+
+      const id = Date.now().toString();
+      users.push([id, name, cleanPhone, package, password]);
+      await fs.promises.writeFile(USERS_FILE, stringify(users, { header: true, columns: ['id', 'name', 'phone', 'package', 'password'] }));
+
+      // Instead of FreeRADIUS, just return the registration result
+      console.log("✅ User registered successfully!");
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ message: 'Registration successful!', password }));
+    } catch (err) {
+      console.error("❌ Registration Error:", err);
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Internal Server Error' }));
+    }
+  });
+}
+
+function serveStaticFiles(req, res) {
+  let filePath = path.join(__dirname, req.url === '/' ? 'public/index.html' : req.url);
+  console.log(`Serving file: ${filePath}`);  // Add this line to debug
+  const ext = path.extname(filePath);
+  const mimeTypes = {
+    '.html': 'text/html',
+    '.css': 'text/css',
+    '.js': 'text/javascript',
+    '.png': 'image/png',
+    '.jpg': 'image/jpeg',
+  };
+  const contentType = mimeTypes[ext] || 'text/plain';
+
+  fs.promises.readFile(filePath, 'utf-8')
+    .then(content => {
+      res.writeHead(200, { 'Content-Type': contentType });
+      res.end(content, 'utf-8');
+    })
+    .catch(err => {
+      console.error('Error serving static file:', err);  // Log any file serving error
+      res.writeHead(err.code === 'ENOENT' ? 404 : 500, { 'Content-Type': 'text/html' });
+      res.end(err.code === 'ENOENT' ? '<h1>404 Page Not Found</h1>' : `Server Error: ${err.code}`, 'utf-8');
+    });
+}
+
+// Function to get the local network IP
+function getLocalIP() {
+  const interfaces = os.networkInterfaces();
+  for (const name of Object.keys(interfaces)) {
+    for (const iface of interfaces[name]) {
+      if (iface.family === 'IPv4' && !iface.internal) {
+        return iface.address;
+      }
+    }
+  }
+  return '127.0.0.1';  // Default to localhost if no network interface is found
+}
+
+const localIP = getLocalIP();
+
+// Bind to local IP, allowing devices on the network to access it
+server.listen(port, localIP, () => {
+  console.log(`🚀 Server running at http://wifi.home`);
+});
+
+*/

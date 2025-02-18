@@ -19,10 +19,11 @@
     "express": "^4.21.2",
     "fedapay": "^1.2.4",
     "fs": "^0.0.1-security",
+    "https": "^1.0.0",
     "path": "^0.12.7"
   },
   "devDependencies": {
-    "electron-packager": "^15.0.0"
+    "electron-packager": "^17.1.2"
   },
   "author": "Ruben HONFOVOU",
   "license": "Proprietary"
