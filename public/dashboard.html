@@ -5,7 +5,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>WiFi Portal</title>
-  <link rel="icon" href="/icon.png" type="image/x-icon">
+  <link rel="shortcut icon" href="/icon.png" type="image/x-icon">
   <link rel="stylesheet" href="/public/assets/css/main.css">
   <script src="/public/assets/scripts/tailwind.js"></script>
   <script src="/public/assets/scripts/typescript.min.js"></script>
@@ -31,8 +31,16 @@
 
 </head>
 
-<body>
-  <div class="wrapper flex flex-col items-start justify-center gap-7 min-h-screen bg-sky-700 p-12 pb-4 ">
+<body class="bg-sky-700 ">
+
+  <nav class="flex justify-between items-center bg-yellow-300 text-sky-700 p-12 py-3 ">
+    <a href="/" class="text-2xl font-bold">Panneau d'Administration</a>
+    <div class="flex justify-between items-center">
+      <a href="/" class="px-4 py-2 bg-red-500 font-bold rounded text-white">Déconnexion</a>
+    </div>
+  </nav>
+
+  <div class="wrappeer flex flex-col items-start justify-center gap-7 p-12 pb-4 ">
     <h1 class="text-5xl font-bold text-yellow-300 flex justify-center items-center gap-2 ">
       <svg fill="currentColor" version="1.1" id="Capa_1" viewBox="0 0 365.892 365.892" xml:space="preserve">
         <g>
@@ -48,79 +56,72 @@
       Mon WIFI Moderne
     </h1>
     <div
-      class="container max-w-5xl w-full p-7 py-6 bg-transparent backdrop:blur-lg text-white shadow-lg rounded-lg m-auto ">
-      <h2 class="text-2xl font-bold mb-4">Créez votre compte instantanément pour profiter de nos tarifs</h2>
-      <p class="mb-8">Payez une fois et profitez de nos forfaits exceptionnels </p>
-      <table class="table max-w-xl w-full m-auto mt-4 ">
-        <thead>
-          <th>Forfait</th>
-          <th>Duree</th>
-          <th>Validité</th>
-          <th>Prix</tr>
+      class="container w-full mt-10 p-7 py-6 bg-transparent backdrop:blur-lg text-white shadow-lg rounded-lg m-auto ">
+      <h2 class="text-2xl font-bold mb-4">Liste de tous vos clients</h2>
+      <!-- <p class="mb-8">Payez une fois et profitez de nos forfaits exceptionnels </p> -->
+      <table class="table w-full m-auto mt-4 ">
+        <thead class="">
+          <tr>
+            <th class="px-4 py-2 text-left">Identifiant</th>
+            <th class="px-4 py-2 text-left">Nom</th>
+            <th class="px-4 py-2 text-left">Numéro</th>
+            <th class="px-4 py-2 text-left">Forfait</th>
+            <th class="px-4 py-2 text-left">Role</th>
+            <th class="px-4 py-2 text-left">Validité</th>
+            <th class="px-4 py-2 text-left">Time Passed</th>
+          </tr>
         </thead>
-        <tbody>
-          <tr>
-            <td>Kwaabo (Express)</td>
-            <td>2 heures</td>
-            <td>1 jour</td>
-            <td>100 f</td>
-          </tr>
-          <tr>
-            <td>Waaba (Habitué)</td>
-            <td>12h</td>
-            <td>3 jours</td>
-            <td>500 f</td>
-          </tr>
-          <tr>
-            <td>Semaine (Client Fidèle)</td>
-            <td>24h</td>
-            <td>7 jours</td>
-            <td>1000 f</td>
-          </tr>
-          <tr>
-          <tr>
-            <td>2 Semaines (Client de la maison)</td>
-            <td>55h</td>
-            <td>14 jours</td>
-            <td>2000 f</td>
-          </tr>
-          <tr>
-          <tr>
-            <td>Mois (Expert)</td>
-            <td>120h</td>
-            <td>30 jours</td>
-            <td>3500 f</td>
-          </tr>
-          <tr>
-            <td>Mois (Sans Limites)</td>
-            <td>Illimité</td>
-            <td>30 jours</td>
-            <td>5000 f</td>
-          </tr>
+        <tbody id="users-table-body">
+          <!-- User data rows will be added here dynamically -->
         </tbody>
       </table>
-      <div class="flex justify-center gap-4 py-4 pt-12 ">
-        <a href="/public/register.html"
-          class="button p-4 py-2 bg-yellow-400 text-black rounded-md cursor-pointer hover:scale-104 transition-all shadow-md ">Créer
-          mon compte</a>
-        <a href="/public/login.html"
-          class="button p-4 py-2 bg-white text-black rounded-md cursor-pointer hover:scale-104 transition-all shadow-md ">J'ai
-          déjà
-          un compte
-        </a>
-      </div>
     </div>
     <div id="footer-placeholder" class="w-full max-w-full flex justify-center items-center py-5 ">
     </div>
   </div>
 
   <script>
+    /*
     fetch('/public/components/footer.html')
       .then(response => response.text())
       .then(data => {
         document.getElementById('footer-placeholder').innerHTML = data;
       })
       .catch(error => console.error('Error loading footer:', error));
+      */
+  </script>
+  <script>
+    async function fetchUsers() {
+      try {
+        const response = await fetch(window.location.origin + "/users");
+        console.log(response);
+        const data = await response.json();
+        
+
+        if (data.users) {
+          const tableBody = document.getElementById('users-table-body');
+          data.users.forEach(user => {
+            const row = document.createElement('tr');
+            row.classList.add('border-b', 'border-gray-200');
+
+            row.innerHTML = `
+              <td class="px-4 py-2">${user.id}</td>
+              <td class="px-4 py-2">${user.name}</td>
+              <td class="px-4 py-2">${user.phone}</td>
+              <td class="px-4 py-2 capitalize">${user.package}</td>
+              <td class="px-4 py-2 capitalize">${user.role}</td>
+              <td class="px-4 py-2">${user.expirationDate || 'N/A'}</td>
+              <td class="px-4 py-2">${user.timePassed || '0'}</td>
+            `;
+            tableBody.appendChild(row);
+          });
+        }
+      } catch (error) {
+        console.error('Error fetching users:', error);
+      }
+    }
+
+    window.onload = fetchUsers;
   </script>
 </body>
 

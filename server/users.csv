@@ -1,3 +1,4 @@
-id,name,phone,package,password,delay,expirationDate,timePassed
-1739888573723,Alban Honfovou,+22996404757,kwaabo,amD9cza2,2 heures,2025-02-18T16:22:53.723Z,0
-1739888583378,White Farm,96404757,2Semaines,CQqP1dUU,55h,2025-02-20T21:23:03.378Z,0
+id,name,phone,package,password,delay,expirationDate,timePassed,role
+1739891867837,Alban Honfovou,+22996404757,semaine,$2b$10$EFJ2DPdvVhyXK6rfC6RQqejoHLVNVi6xiw7USSdrRJYybmFsrD9Ve,24h,2025-02-19T15:17:47.837Z,0,admin
+1739891918338,White Farm,96404757,mois,$2b$10$uXQeqHsQf3Aoob8TtFhXvup0q68yekNxMaLXQ4rjVbExvsqemEE7m,120h,2025-02-23T15:18:38.338Z,0,user
+1739896908467,White Farm,96404757j,mois,$2b$10$XQ/MCb7D4nhL.8ZY/2jKBeru33nRbfORF9p67/kZCNBfFkSyccCv6,120h,2025-02-23T16:41:48.467Z,0,user

@@ -118,7 +118,7 @@
         const amount = selectedOption.dataset.amount || '0';
         const package = selectedOption.value;
 
-        console.log('amountInput: ', amountInput);
+        //console.log('amountInput: ', amountInput);
         amountInput.textContent = `${amount} FCFA`;
         packageLabel.textContent = package;
       });
@@ -218,7 +218,7 @@
         }
 
         const data = await response.json();
-        console.log("Response JSON:", data);  // Log the response data
+        //console.log("Response JSON:", data);  // Log the response data
 
         alert(`Inscription réussie! Votre mot de passe est: ${data.password} \nVous pouvez faire une capture d'écran et l'écrire quelque part \n\n${data.password}`);
       } catch (error) {

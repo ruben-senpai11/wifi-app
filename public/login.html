@@ -106,6 +106,12 @@
 
         const data = await response.json();
 
+        if (data.redirect) {
+          //window.location.href = data.redirect;
+          window.location.href = "/dashboard";
+          return;
+        }
+
         document.getElementById('button').innerHTML = '<button class="d-none"></button>';
         const inputs = document.getElementsByClassName('w-rm');
         for (let input of inputs) {
@@ -119,7 +125,7 @@
         👤 Nom : <b>${data.name}</b><br>
         📞 Numéro : <b>${data.phone}</b><br>
         📦 Forfait : <b>${data.package}</b><br>
-        🏷️ Titre : <b>${data.titre}</b><br>
+        💎 Titre : <b>${data.titre}</b><br>
         ⏳ Durée : <b>${data.duree}</b><br>
         ⏰ Temps Restant : <b>${data.remainingTime} heures</b><br>
         📅 Date d'expiration : <b>${data.expirationDate}</b><br>
