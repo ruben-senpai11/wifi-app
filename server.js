@@ -119,6 +119,18 @@ async function registerUser(req, res) {
         'illimite': 'Illimité'
       };
 
+      /*
+      const packageDelays = {
+        'kwaabo': '1 jour',
+        'waaba': '3 jours',
+        'semaine': '7 jours',
+        '2Semaines': '14 jours',
+        'mois': '30 jours',
+        'illimite': '30 jours'
+      };
+      */
+
+
       const delay = packageDelays[package]; // Get the delay from the selected package
       const expirationDate = calculateExpirationDate(delay);
       const timePassed = expirationDate ? '0' : '0'; // Assuming time passed is 0 when registering
@@ -213,9 +225,13 @@ async function loginUser(req, res) {
         hour12: false, // Ensures 24-hour format
       });
 
-      const currentDate = new Date();
 
-      let remainingTime = '';
+      const passedTime = user[7]>0 ? new Date(user[7]) : 0;
+      const delay = parseInt(user[5]);
+      const remainingTime = delay - (passedTime ? passedTime.getHours() : 0);
+
+
+      /*
       if (expirationDate > currentDate) {
         const remainingTimeInMs = expirationDate - currentDate;
         const remainingTimeInHours = Math.floor(remainingTimeInMs / (1000 * 60 * 60)); // Convert ms to hours
@@ -224,6 +240,7 @@ async function loginUser(req, res) {
       } else {
         remainingTime = 'Expiré';
       }
+      */
 
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({
