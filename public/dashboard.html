@@ -36,7 +36,12 @@
   <nav class="flex justify-between items-center bg-yellow-300 text-sky-700 p-12 py-3 ">
     <a href="/" class="text-2xl font-bold">Panneau d'Administration</a>
     <div class="flex justify-between items-center">
-      <a href="/" class="px-4 py-2 bg-red-500 font-bold rounded text-white">Déconnexion</a>
+      <!-- <a href="/" class="px-4 py-2 bg-red-500 font-bold rounded text-white">
+        Déconnexion
+      </a> -->
+      <button id="logout" class="bg-red-700 hover:bg-red-600 text-white font-bold py-2 px-4 cursor-pointer rounded">
+        Déconnexion
+      </button>
     </div>
   </nav>
 
@@ -90,13 +95,14 @@
       .catch(error => console.error('Error loading footer:', error));
       */
   </script>
+
   <script>
     async function fetchUsers() {
       try {
         const response = await fetch(window.location.origin + "/users");
         console.log(response);
         const data = await response.json();
-        
+
 
         if (data.users) {
           const tableBody = document.getElementById('users-table-body');
@@ -122,6 +128,21 @@
     }
 
     window.onload = fetchUsers;
+  </script>
+
+  <script>
+    document.getElementById('logout').addEventListener('click', function () {
+      fetch('/logout', { method: 'GET', credentials: 'include' })
+        .then(response => response.json())
+        .then(data => {
+          console.log(data.message);
+          // Redirect to home or login page after logout
+          window.location.href = '/';
+        })
+        .catch(error => {
+          console.error('Error during logout:', error);
+        });
+    });
   </script>
 </body>
 

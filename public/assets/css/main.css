@@ -4,15 +4,15 @@
   background-color: #2a2a2a3a;
   /* color: black; */
 }
-button, a.button:hover{
+button.button, a.button:hover{
   color: yellow;
   background-color: purple;
 }
-button{
+button.button{
   padding-top: 10px;
   padding-bottom: 10px;
 }
-button:hover{
+button.button:hover{
   background-color: rgb(255, 196, 0);
   color: black;
   transform: scale(1.02);
