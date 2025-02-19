@@ -29,20 +29,6 @@ async function ensureFileExists(filePath) {
   }
 }
 
-// Get the local IP address
-function getLocalIP() {
-  const interfaces = os.networkInterfaces();
-  for (const name of Object.keys(interfaces)) {
-    for (const iface of interfaces[name]) {
-      if (iface.family === 'IPv4' && !iface.internal) {
-        return iface.address;
-      }
-    }
-  }
-  return '127.0.0.1';
-}
-const LOCAL_IP = getLocalIP();
-
 
 // --- Helper: Simple cookie parser (if not using a full library) ---
 function parseCookies(cookieHeader) {
@@ -326,18 +312,28 @@ async function serveStaticFiles(req, res) {
     '.js': 'text/javascript',
     '.png': 'image/png',
     '.jpg': 'image/jpeg',
+    '.ico': 'image/x-icon',
+    '.json': 'application/json'
   };
-  const contentType = mimeTypes[ext] || 'text/plain';
+  const contentType = mimeTypes[ext] || 'application/octet-stream';
 
   try {
-    const content = await fs.readFile(filePath, 'utf8');
-    res.writeHead(200, { 'Content-Type': contentType });
-    res.end(content, 'utf-8');
+    // For images and other binary files, read as a buffer
+    if (['.png', '.jpg', '.ico'].includes(ext)) {
+      const content = await fs.readFile(filePath);
+      res.writeHead(200, { 'Content-Type': contentType });
+      res.end(content);
+    } else {
+      const content = await fs.readFile(filePath, 'utf8');
+      res.writeHead(200, { 'Content-Type': contentType });
+      res.end(content, 'utf-8');
+    }
   } catch (err) {
     res.writeHead(err.code === 'ENOENT' ? 404 : 500, { 'Content-Type': 'text/html' });
     res.end(err.code === 'ENOENT' ? '<h1>404 Page Not Found</h1>' : `Server Error: ${err.code}`, 'utf-8');
   }
 }
+
 
 // --- Create HTTP Server ---
 const server = http.createServer((req, res) => {
@@ -357,6 +353,20 @@ const server = http.createServer((req, res) => {
   }
 });
 
+
+// Get the local IP address
+function getLocalIP() {
+  const interfaces = os.networkInterfaces();
+  for (const name of Object.keys(interfaces)) {
+    for (const iface of interfaces[name]) {
+      if (iface.family === 'IPv4' && !iface.internal) {
+        return iface.address;
+      }
+    }
+  }
+  return '127.0.0.1';
+}
+const LOCAL_IP = getLocalIP();
 
 
 // Bind server to WiFi network & local IP
