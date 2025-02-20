@@ -7,14 +7,107 @@ const jwt = require('jsonwebtoken');
 const cookieParser = require('cookie-parser');
 const { stringify } = require('csv-stringify/sync');
 const net = require('net');
+const { exec } = require('child_process');
+const isWindows = process.platform === 'win32';
+
+require('./server/usersCleaner')
 
 const port = 2025;
 const USERS_FILE = path.join(__dirname, 'server/users.csv');
-const TEKRADIUS_USERS_FILE = path.join(__dirname, 'server/TekRADIUS-User.csv');
+const ALLTIME_USERS_FILE = path.join(__dirname, 'server/allTimeUsers.csv');
 const SALT_ROUNDS = 10;
 const JWT_SECRET = 'e9ff19feccd320df5813ffbf02187c7f8ac1f25bada287cb7923fc245c87fd96'; // Use a strong secret key in production
 const JWT_EXPIRATION = '1h'; // Session expires in one hour
 const SESSION_COOKIE_NAME = 'session_token';
+
+
+/**
+ * Blocks internet access for all clients.
+ * For Linux: Uses sudo iptables to drop any forwarded packets whose destination is not the server's local IP.
+ * For Windows: Uses netsh to add a firewall rule blocking outbound traffic.
+ */
+function blockAllClients() {
+  if (isWindows) {
+    // Windows: Block all outbound traffic (you may need to specify the WiFi adapter/profile as needed).
+    exec(`netsh advfirewall firewall add rule name="BlockAllClients" dir=out action=block remoteip=any`, (error, stdout, stderr) => {
+      if (error) {
+        console.error(`Error blocking traffic on Windows: ${error.message}`);
+        return;
+      }
+      console.log('🚫 All client internet access blocked (Windows).');
+    });
+  } else {
+    // Linux: Get local IP and block all traffic not destined for it.
+    const localIP = getLocalIP();
+    // Corrected command: Place "!" before -d and specify /32 for the single IP.
+    exec(`sudo iptables -I FORWARD -s 0.0.0.0/0 ! -d ${localIP}/32 -j DROP`, (error, stdout, stderr) => {
+      if (error) {
+        console.error(`Error blocking traffic: ${error.message}`);
+        return;
+      }
+      console.log('🚫 All client internet access blocked.');
+    });
+  }
+}
+
+
+/**
+ * Allows internet access for a specific client IP.
+ * For Linux: Removes the DROP rule for that client.
+ * For Windows: Adds an allow rule for that client which takes precedence.
+ *
+ * @param {string} clientIP - The client's IP address to unblock.
+ */
+function allowClient(clientIP) {
+  if (isWindows) {
+    // Windows: Add a rule to allow outbound traffic for the specific client IP.
+    exec(`netsh advfirewall firewall add rule name="AllowClient ${clientIP}" dir=out action=allow remoteip=${clientIP}`, (error, stdout, stderr) => {
+      if (error) {
+        console.error(`Error allowing traffic for ${clientIP} on Windows: ${error.message}`);
+        return;
+      }
+      console.log(`✅ Internet access allowed for ${clientIP} (Windows)`);
+    });
+  } else {
+    const localIP = getLocalIP();
+    // Linux: Remove the DROP rule for the specific client IP.
+    exec(`sudo iptables -D FORWARD -s ${clientIP} ! -d ${localIP}/32 -j DROP`, (error, stdout, stderr) => {
+      if (error) {
+        console.error(`Error unblocking traffic for ${clientIP}: ${error.message}`);
+        return;
+      }
+      console.log(`✅ Internet access allowed for ${clientIP}`);
+    });
+  }
+}
+
+/**
+ * (Optional) Blocks internet access for a specific client IP.
+ * This function can be used if you need to re-block an individual client.
+ *
+ * @param {string} clientIP - The client's IP address to block.
+ */
+function blockClient(clientIP) {
+  if (isWindows) {
+    // Windows: Add a rule to block outbound traffic for the specific client IP.
+    exec(`netsh advfirewall firewall add rule name="BlockClient ${clientIP}" dir=out action=block remoteip=${clientIP}`, (error, stdout, stderr) => {
+      if (error) {
+        console.error(`Error blocking traffic for ${clientIP} on Windows: ${error.message}`);
+        return;
+      }
+      console.log(`🚫 Internet access blocked for ${clientIP} (Windows)`);
+    });
+  } else {
+    const localIP = getLocalIP();
+    exec(`sudo iptables -I FORWARD -s ${clientIP} ! -d ${localIP}/32 -j DROP`, (error, stdout, stderr) => {
+      if (error) {
+        console.error(`Error blocking traffic for ${clientIP}: ${error.message}`);
+        return;
+      }
+      console.log(`🚫 Internet access blocked for ${clientIP}`);
+    });
+  }
+}
 
 // --- Helper Functions ---
 
@@ -24,10 +117,10 @@ async function ensureFileExists(filePath) {
     await fs.access(filePath);
     const content = await fs.readFile(filePath, 'utf8');
     if (!content.trim()) {
-      await fs.writeFile(filePath, stringify([], { header: true, columns: ['id', 'name', 'phone', 'package', 'password', 'delay', 'expirationDate', 'timePassed', 'role'] }));
+      await fs.writeFile(filePath, stringify([], { header: true, columns: ['id', 'name', 'phone', 'package', 'password', 'delay', 'expirationDate', 'timePassed', 'role', 'ip'] }));
     }
   } catch {
-    await fs.writeFile(filePath, stringify([], { header: true, columns: ['id', 'name', 'phone', 'package', 'password', 'delay', 'expirationDate', 'timePassed', 'role'] }));
+    await fs.writeFile(filePath, stringify([], { header: true, columns: ['id', 'name', 'phone', 'package', 'password', 'delay', 'expirationDate', 'timePassed', 'role', 'ip'] }));
   }
 }
 
@@ -76,20 +169,52 @@ async function registerUser(req, res) {
       expirationDate.setDate(now.getDate() + days);
     } else if (delay.includes('h')) {
       const hours = parseInt(delay);
+      console.log("delay in hour: ", hours);
+      console.log("now in hour: ", now.getHours());
       expirationDate.setHours(now.getHours() + hours);
+      console.log("the sum: ", now.getHours() + hours);
+      console.log("will return: ", expirationDate.toISOString());
     } else {
       expirationDate = null;
     }
 
     return expirationDate ? expirationDate.toISOString() : null;
   }
+/*
+  function ProceedPayment(name, phone, amount, package) {
 
+    // Initialize FedaPay widget
+    let widget = FedaPay.init({
+      public_key: 'pk_live_YSlxSSpIrQssqOUVEOSD-iNe'
+    });
 
+    // Pass dynamic attributes to FedaPay widget
+    widget.open({
+      transaction: {
+        amount: parseInt(amount),
+        description: `Forfait: ${package}`,
+      },
+      customer: {
+        lastname: name,
+        phone_number: phone,
+      }
+    });
+
+    console.log("Payment data:", {
+      name: name,
+      phone: phone,
+      amount: amount,
+      package: package
+    });
+  }
+*/
   let body = '';
   req.on('data', chunk => { body += chunk.toString(); });
   req.on('end', async () => {
     try {
-      const { name, phone, package } = JSON.parse(body);
+      const { name, phone, amount, package } = JSON.parse(body);
+
+      //ProceedPayment(name, phone, amount, package)
 
       const password = generatePassword(8);
       const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
@@ -106,19 +231,19 @@ async function registerUser(req, res) {
       const cleanPhone = phone.replace(/\s+/g, '');
       if (users.some(user => user[2] === cleanPhone)) {
         res.writeHead(400, { 'Content-Type': 'application/json' });
-        return res.end(JSON.stringify({ error: 'Ce numéro a déjà un forfait actif !' }));
+        return res.end(JSON.stringify({ error: 'Ce numéro a déjà un forfait actif ! Vous pouvez en écrire un autre' }));
       }
 
       const id = Date.now().toString();
 
       // Package delays
       const packageDelays = {
-        'kwaabo': '2 heures',
-        'waaba': '12h',
-        'semaine': '24h',
-        '2Semaines': '55h',
-        'mois': '120h',
-        'illimite': 'Illimité'
+        'kwaabo': '1 jour',
+        'waaba': '3 jours',
+        'semaine': '7 jours',
+        '2Semaines': '14 jours',
+        'mois': '30 jours',
+        'illimite': '30 jours'
       };
 
       const delay = packageDelays[package];
@@ -127,16 +252,15 @@ async function registerUser(req, res) {
 
       const role = users.length === 0 ? 'admin' : 'user'; // First user becomes admin
 
-      const newUser = stringify([[id, name, cleanPhone, package, hashedPassword, delay, expirationDate, timePassed, role]], { header: false });
+      const clientIP = req.socket.remoteAddress; // or req.connection.remoteAddress depending on your Node version
+      console.log("clientIP: ", clientIP);
+      const newUser = stringify([[id, name, cleanPhone, package, hashedPassword, delay, expirationDate, timePassed, role, clientIP]], { header: false });
       await fs.appendFile(USERS_FILE, newUser);
 
-
-      // Ensure TekRADIUS user file exists
-      await ensureFileExists(TEKRADIUS_USERS_FILE);
-
-      // Append to TekRADIUS user file
-      const radiusUser = `${phone},${password},User-Password,==,${password},Expiration,=${calculateExpirationDate(package)}\n`;
-      await fs.appendFile(TEKRADIUS_USERS_FILE, radiusUser);
+      // Ensure ALLTIME user file exists
+      await ensureFileExists(ALLTIME_USERS_FILE);
+      // Append to ALLTIME user file
+      await fs.appendFile(ALLTIME_USERS_FILE, newUser);
 
       console.log(`✅ User registered: ${cleanPhone}`);
       res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -184,12 +308,6 @@ async function loginUser(req, res) {
         return res.end(JSON.stringify({ error: 'Numéro de téléphone ou mot de passe incorrect !' }));
       }
 
-      // Forwarding login requests to TekRADIUS
-      const client = new net.Socket();
-      client.connect(1812, '127.0.0.1', () => {
-        client.write(`User-Name=${phone},User-Password=${password}`);
-      });
-      
       // For admin, create a JWT and set it as an HttpOnly cookie.
       const role = user[8];
       if (role === 'admin') {
@@ -206,14 +324,19 @@ async function loginUser(req, res) {
       // For non-admin users, return their info.
       console.log(`✅ User logged in: ${cleanPhone}`);
 
+      // At the end of a successful login in your loginUser function:
+      const clientIP = req.socket.remoteAddress; // or req.connection.remoteAddress depending on your Node version
+      console.log("clientIP: ", clientIP);
+      allowClient(clientIP);
+
       // Define the packages with their corresponding titles, durations, and delays
       const packageDetails = {
-        'kwaabo': { titre: 'Express', duree: '2 heures', delay: 2, expirationDate: 2, timePassed: 0 },
-        'waaba': { titre: 'Habitué', duree: '12h', delay: 12, expirationDate: 12, timePassed: 0 },
-        'semaine': { titre: 'Client Fidèle', duree: '24h', delay: 24, expirationDate: 24, timePassed: 0 },
-        '2Semaines': { titre: 'Semaines (Client de la maison)', duree: '55h', delay: 55, expirationDate: 55, timePassed: 0 },
-        'mois': { titre: 'Expert', duree: '120h', delay: 120, expirationDate: 120, timePassed: 0 },
-        'illimite': { titre: 'Sans Limites', duree: 'Illimité', delay: -1, expirationDate: -1, timePassed: 0 }
+        'kwaabo': { titre: 'Express', duree: '2 heures', delay: 2, timePassed: 0 },
+        'waaba': { titre: 'Habitué', duree: '12h', delay: 12, timePassed: 0 },
+        'semaine': { titre: 'Client Fidèle', duree: '24h', delay: 24, timePassed: 0 },
+        '2Semaines': { titre: 'Semaines (Client de la maison)', duree: '55h', delay: 55, timePassed: 0 },
+        'mois': { titre: 'Expert', duree: '120h', delay: 120, timePassed: 0 },
+        'illimite': { titre: 'Sans Limites', duree: 'Illimité', delay: -1, timePassed: 0 }
       };
 
       const userPackage = user[3]; // Package is stored in user[3]
@@ -225,6 +348,7 @@ async function loginUser(req, res) {
       }
 
       // Retrieve expiration date and time passed from CSV data
+      const delay = new Date(user[5]);
       const expirationDate = new Date(user[6]);
       const frExpirationDate = expirationDate.toLocaleString("fr-FR", {
         day: "2-digit",
@@ -238,12 +362,15 @@ async function loginUser(req, res) {
 
       const currentDate = new Date();
 
-      let remainingTime = '';
-      if (expirationDate > currentDate) {
+      let remainingTime = delay;
+      if (expirationDate == 0) {
+        return
+      }
+      else if (expirationDate > currentDate) {
         const remainingTimeInMs = expirationDate - currentDate;
         const remainingTimeInHours = Math.floor(remainingTimeInMs / (1000 * 60 * 60)); // Convert ms to hours
         // const expirationHour = remainingTimeInHours.getHours();
-        remainingTime = `${remainingTimeInHours} heures restantes`;
+        remainingTime = `${remainingTimeInHours} heure.s restantes`;
       } else {
         remainingTime = 'Expiré';
       }
@@ -309,9 +436,10 @@ async function getAllUsers(req, res) {
         name: user[1],
         phone: user[2],
         package: user[3],
-        role: user[8],
+        delay: user[5],
         expirationDate: formattedExpirationDate,
         timePassed: user[7],
+        clientIP: user[9]
       };
     });
 
@@ -330,26 +458,27 @@ async function serveDashboard(req, res) {
   // Parse cookies from the request
   const cookies = parseCookies(req.headers.cookie);
   const token = cookies[SESSION_COOKIE_NAME];
-  console.log(token);
+  console.log("token: ", token);
   if (!token) {
     res.writeHead(401, { 'Content-Type': 'application/json' });
-    return res.end(JSON.stringify({ error: 'Unauthorized: No session token' }));
-  }
+    return res.end(JSON.stringify({ error: "Vous n'êtes pas autorisé à voir cette page ! Veuillez-vous connecter à nouveau si vous êtes l'administrateur " }));
+  } else {
 
-  try {
-    const decoded = jwt.verify(token, JWT_SECRET);
-    if (decoded.role !== 'admin') {
-      res.writeHead(403, { 'Content-Type': 'application/json' });
-      return res.end(JSON.stringify({ error: 'Forbidden: Admins only' }));
-    }
-    // Serve the dashboard HTML if authenticated
-    const filePath = path.join(__dirname, 'public/dashboard.html');
-    const content = await fs.readFile(filePath, 'utf8');
-    res.writeHead(200, { 'Content-Type': 'text/html' });
-    res.end(content, 'utf8');
-  } catch (err) {
-    res.writeHead(401, { 'Content-Type': 'application/json' });
-    return res.end(JSON.stringify({ error: 'Unauthorized: Invalid or expired token' }));
+    try {
+      const decoded = jwt.verify(token, JWT_SECRET);
+      if (decoded.role !== 'admin') {
+        res.writeHead(403, { 'Content-Type': 'application/json' });
+        return res.end(JSON.stringify({ error: 'Forbidden: Admins only' }));
+      }
+      // Serve the dashboard HTML if authenticated
+      const filePath = path.join(__dirname, 'public/dashboard.html');
+      const content = await fs.readFile(filePath, 'utf8');
+      res.writeHead(200, { 'Content-Type': 'text/html' });
+      res.end(content, 'utf8');
+    } catch (err) {
+      res.writeHead(401, { 'Content-Type': 'application/json' });
+      return res.end(JSON.stringify({ error: "Vous n'êtes pas autorisé à voir cette page ! Veuillez-vous connecter à nouveau si vous êtes l'administrateur " }));
+  }
   }
 }
 
@@ -382,13 +511,14 @@ async function serveStaticFiles(req, res) {
     '.png': 'image/png',
     '.jpg': 'image/jpeg',
     '.ico': 'image/x-icon',
+    '.svg': 'image/svg',
     '.json': 'application/json'
   };
   const contentType = mimeTypes[ext] || 'application/octet-stream';
 
   try {
     // For images and other binary files, read as a buffer
-    if (['.png', '.jpg', '.ico'].includes(ext)) {
+    if (['.png', '.jpg', '.ico', '.svg'].includes(ext)) {
       const content = await fs.readFile(filePath);
       res.writeHead(200, { 'Content-Type': contentType });
       res.end(content);
@@ -398,8 +528,10 @@ async function serveStaticFiles(req, res) {
       res.end(content, 'utf-8');
     }
   } catch (err) {
-    res.writeHead(err.code === 'ENOENT' ? 404 : 500, { 'Content-Type': 'text/html' });
-    res.end(err.code === 'ENOENT' ? '<h1>404 Page Not Found</h1>' : `Server Error: ${err.code}`, 'utf-8');
+    const filePath = path.join(__dirname, 'public/404.html');
+    const content = await fs.readFile(filePath, 'utf8');
+    res.writeHead(200, { 'Content-Type': 'text/html' });
+    res.end(content, 'utf8');
   }
 }
 
@@ -411,9 +543,9 @@ const server = http.createServer((req, res) => {
     registerUser(req, res);
   } else if (req.method === 'POST' && req.url === '/login') {
     loginUser(req, res);
-  } else if (req.method === 'GET' && req.url === '/users') {
+  } else if (req.method === 'GET' && (req.url === '/users' || req.url === '/public/users')) {
     getAllUsers(req, res);
-  } else if (req.method === 'GET' && req.url === '/dashboard') {
+  } else if (req.method === 'GET' && (req.url === '/dashboard.html' || req.url === '/public/dashboard.html')) {
     serveDashboard(req, res);
   } else if (req.method === 'GET' && req.url === '/logout') {
     logoutUser(req, res);
@@ -442,5 +574,6 @@ const LOCAL_IP = getLocalIP();
 server.listen(port, LOCAL_IP, () => {
   console.log(`🚀 Server running at http://${LOCAL_IP}:${port}`);
   console.log(`🌐 Access the portal at http://wifi.home:2025/`);
+  blockAllClients();
 });
 

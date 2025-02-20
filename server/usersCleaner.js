@@ -3,6 +3,36 @@ const path = require('path');
 const { stringify } = require('csv-stringify/sync');
 const cron = require('node-cron');  // Import node-cron
 const USERS_FILE = path.join(__dirname, 'users.csv');
+const TEKRADIUS_USERS_FILE = path.join(__dirname, 'TekRADIUS-User.csv');
+
+
+/**
+ * (Optional) Blocks internet access for a specific client IP.
+ * This function can be used if you need to re-block an individual client.
+ *
+ * @param {string} clientIP - The client's IP address to block.
+ */
+function blockClient(clientIP) {
+  if (isWindows) {
+    // Windows: Add a rule to block outbound traffic for the specific client IP.
+    exec(`netsh advfirewall firewall add rule name="BlockClient ${clientIP}" dir=out action=block remoteip=${clientIP}`, (error, stdout, stderr) => {
+      if (error) {
+        console.error(`Error blocking traffic for ${clientIP} on Windows: ${error.message}`);
+        return;
+      }
+      console.log(`🚫 Internet access blocked for ${clientIP} (Windows)`);
+    });
+  } else {
+    const localIP = getLocalIP();
+    exec(`sudo iptables -I FORWARD -s ${clientIP} ! -d ${localIP}/32 -j DROP`, (error, stdout, stderr) => {
+      if (error) {
+        console.error(`Error blocking traffic for ${clientIP}: ${error.message}`);
+        return;
+      }
+      console.log(`🚫 Internet access blocked for ${clientIP}`);
+    });
+  }
+}
 
 // Function to check if a user has expired
 function hasUserExpired(expirationDate) {
@@ -14,9 +44,10 @@ function hasUserExpired(expirationDate) {
   return currentDate > expiration;
 }
 
-console.log("Entered in the cron file");
+console.log("Con Job Inited");
+
 // Function to remove expired users
-async function removeExpiredUsers() {
+async function removeCsvUsers() {
   try {
     // Read users from CSV file
     const fileContent = await fs.readFile(USERS_FILE, 'utf8');
@@ -28,17 +59,19 @@ async function removeExpiredUsers() {
 
     // Filter out expired users
     const validUsers = users.filter(user => {
-      const expirationDate = user[6]; // expirationDate is stored in the 7th column
+      const expirationDate = user[6]; // expirationDate is stored in the 7th 
+      if(hasUserExpired(user[6])){
+        blockClient(user[9])
+      }
       return !hasUserExpired(expirationDate);
     });
 
-    console.log("Cron Job inited");
     // Write valid users back to the CSV file
-    const header = ['id', 'name', 'phone', 'package', 'password', 'delay', 'expirationDate', 'timePassed', 'role'];
+    const header = ['id', 'name', 'phone', 'package', 'password', 'delay', 'expirationDate', 'timePassed', 'role', 'ip'];
     const updatedContent = stringify([header, ...validUsers], { header: false });
 
     await fs.writeFile(USERS_FILE, updatedContent);
-    console.log(`✅ Expired users removed. ${validUsers.length} users remain.`);
+    console.log(`✅ Users removed from Local database. ${validUsers.length} users remain.`);
   } catch (err) {
     console.error("❌ Error removing expired users:", err);
   }
@@ -47,9 +80,9 @@ async function removeExpiredUsers() {
 // Schedule the cron job to run every day at midnight
 cron.schedule('*/10 * * * *', () => {
   console.log('🕰️ Running cron job: Checking and removing expired users...');
-  removeExpiredUsers();
+  removeCsvUsers();
 });
 
 // Optionally, you can add more frequent schedules, e.g., hourly
-// cron.schedule('0 * * * *', () => { removeExpiredUsers(); });
+// cron.schedule('0 * * * *', () => { removeCsvUsers(); });
 

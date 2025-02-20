@@ -21,6 +21,46 @@
       border-radius: 8px;
       box-shadow: 0 0 2px black;
     }
+
+    .container{
+        overflow: auto;
+    }
+    @media (max-width:1030px) {
+      .container{
+        width: 100%;
+        max-width: 100%;
+      }
+    }
+    @media (max-width:758px) {
+      nav a{
+        font-size: 20px;
+      }
+      nav button{
+        font-size: 14px;
+        padding: 4px 8px;
+      }
+      .p-12{
+        padding: 2% 4%;
+      }
+      h1{
+        font-size: 24px;
+      }
+      
+      svg{
+        width: 40px;
+        height: 40px;
+      }
+      .container{
+        padding: 5% 2%;
+      }
+      .d-wrapper{
+        padding: 10% 4%;
+      }
+      .d-wrapper th:nth-child(1), .d-wrapper td:nth-child(1){
+        display: none;
+      }
+    }
+
     @media (max-width:404px) {
       svg{
       width: 50px;
@@ -33,7 +73,7 @@
 
 <body class="bg-sky-700 ">
 
-  <nav class="flex justify-between items-center bg-yellow-300 text-sky-700 p-12 py-3 ">
+  <nav class="dashboard flex justify-between items-center bg-yellow-300 text-sky-700 p-12 py-3 ">
     <a href="/" class="text-2xl font-bold">Panneau d'Administration</a>
     <div class="flex justify-between items-center">
       <!-- <a href="/" class="px-4 py-2 bg-red-500 font-bold rounded text-white">
@@ -45,7 +85,7 @@
     </div>
   </nav>
 
-  <div class="wrappeer flex flex-col items-start justify-center gap-7 p-12 pb-4 ">
+  <div class="d-wrapper flex flex-col items-start justify-center gap-24 p-12 pb-4 ">
     <h1 class="text-5xl font-bold text-yellow-300 flex justify-center items-center gap-2 ">
       <svg fill="currentColor" version="1.1" id="Capa_1" viewBox="0 0 365.892 365.892" xml:space="preserve">
         <g>
@@ -61,7 +101,7 @@
       Mon WIFI Moderne
     </h1>
     <div
-      class="container w-full mt-10 p-7 py-6 bg-transparent backdrop:blur-lg text-white shadow-lg rounded-lg m-auto ">
+      class="container w-full p-7 py-6 bg-transparent backdrop:blur-lg text-white shadow-lg rounded-lg m-auto ">
       <h2 class="text-2xl font-bold mb-4">Liste de tous vos clients</h2>
       <!-- <p class="mb-8">Payez une fois et profitez de nos forfaits exceptionnels </p> -->
       <table class="table w-full m-auto mt-4 ">
@@ -69,19 +109,66 @@
           <tr>
             <th class="px-4 py-2 text-left">Identifiant</th>
             <th class="px-4 py-2 text-left">Nom</th>
-            <th class="px-4 py-2 text-left">Numéro</th>
+            <th class="px-4 py-2 text-left">Téléphone</th>
             <th class="px-4 py-2 text-left">Forfait</th>
-            <th class="px-4 py-2 text-left">Role</th>
             <th class="px-4 py-2 text-left">Validité</th>
-            <th class="px-4 py-2 text-left">Time Passed</th>
+            <th class="px-4 py-2 text-left">Date d'expiration</th>
+            <th class="px-4 py-2 text-left">Temps passé</th>
+            <th class="px-4 py-2 text-left">Adresse IP</th>
           </tr>
         </thead>
         <tbody id="users-table-body">
           <!-- User data rows will be added here dynamically -->
         </tbody>
       </table>
+
     </div>
-    <div id="footer-placeholder" class="w-full max-w-full flex justify-center items-center py-5 ">
+    <div class="max-w-sm m-auto w-full p-7 py-6 text-black bg-white shadow-lg rounded-lg ">
+      <h2 class="text-2xl font-bold mb-4">Ajouter compte </h2>
+      <form id="registerForm">
+        <div class="mb-4">
+          <label class="block text-sm font-medium">Nom:</label>
+          <input id="name" type="text" class="w-full border border-gray-300 rounded p-2" placeholder="Martin GANDAHO"
+            autocomplete="name" />
+        </div>
+
+        <div class="mb-4">
+          <label class="block text-sm font-medium">Numero de telephone: </label>
+          <input id="tel" type="tel" class="w-full border border-gray-300 rounded p-2" placeholder="+229 01 96969090"
+            autocomplete="tel" />
+        </div>
+
+        <div class="mb-4">
+          <label class="block text-sm font-medium">Forfait:</label>
+          <select id="package" name="select" class="w-full border border-gray-300 text-slate-700 rounded p-2">
+            <!-- <option data-amount="0" value="-">Veuillez choisir un forfait</option> -->
+            <option data-amount="200" value="kwaabo">Kwaabo - 2heures - Validité 1 jour</option>
+            <option data-amount="500" value="waaba">Waaba - 12h - Validité 3 jours</option>
+            <option data-amount="1000" value="semaine">Semaine - 24h - Validité 7 jours</option>
+            <option data-amount="2000" value="2Semaines">Semaines - 55h - Validité 14 jours</option>
+            <option data-amount="3500" value="mois">Mois - 120h - Validité 30 jours</option>
+            <option data-amount="5000" value="illimite">Mois - Illimité - Validité 30 jours</option>
+          </select>
+        </div>
+
+        <div class="mb-4">
+          <label class="block text-sm text-slate-500 font-medium">
+            Montant:
+            <span id="amount" class="text-cyan-600 font-bold ">200 FCFA</span>
+          </label>
+        </div>
+
+        <p id="errors" class="text-red-500 text-sm pb-4 "></p>
+
+        <button id="pay" type="submit" class="button w-full py-2 cursor-pointer rounded" data-transaction-amount="200"
+          data-transaction-description="Acheter mon produit" data-customer-email="johndoe@gmail.com"
+          data-customer-lastname="Doe">
+          Activer mon
+          <span id="packageName" class="font-bold capitalize ">
+            Kwaboo
+          </span>
+        </button>
+      </form>
     </div>
   </div>
 
@@ -115,9 +202,10 @@
               <td class="px-4 py-2">${user.name}</td>
               <td class="px-4 py-2">${user.phone}</td>
               <td class="px-4 py-2 capitalize">${user.package}</td>
-              <td class="px-4 py-2 capitalize">${user.role}</td>
-              <td class="px-4 py-2">${user.expirationDate || 'N/A'}</td>
-              <td class="px-4 py-2">${user.timePassed || '0'}</td>
+              <td class="px-4 py-2 capitalize">${user.delay}</td>
+              <td class="px-4 py-2">${user.expirationDate || 'Non defini'}</td>
+              <td class="px-4 py-2">${user.timePassed || '0'}h</td>
+              <td class="px-4 py-2">${user.clientIP}</td>
             `;
             tableBody.appendChild(row);
           });
@@ -144,6 +232,80 @@
         });
     });
   </script>
+
+
+
+<script>
+  async function register(event) {
+    event.preventDefault(); // Stop the form from submitting normally
+
+    const nameInput = document.getElementById("name");
+    const phoneInput = document.getElementById("tel");
+    const packageInput = document.getElementById("package");
+    const errorContainer = document.getElementById("errors");
+
+    const name = nameInput.value.trim();
+    const phone = phoneInput.value.replace(/\s+/g, ""); // Remove spaces from phone number
+    const package = packageInput.value;
+
+    errorContainer.textContent = ""; // Clear previous errors
+
+    if (!name) {
+      errorContainer.textContent = "Veuillez saisir votre nom";
+      return;
+    }
+    if (name.length<3) {
+      errorContainer.textContent = "Ce nom est trop court";
+      return;
+    }
+    if (!phone) {
+      errorContainer.textContent = "Veuillez saisir votre numéro de téléphone.";
+      return;
+    }
+    if (phone.length<8) {
+      errorContainer.textContent = "Numéro de téléphone trop court";
+      return;
+    } else if(phone.length>14){
+      errorContainer.textContent = "Numéro de téléphone trop long";
+      return;
+    }
+    if (!package) {
+      errorContainer.textContent = "Veuillez choisir un forfait.";
+      return;
+    }
+
+    try {
+      // console.log("Sending data:", { name, phone });
+      const response = await fetch(window.location.origin + "/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, phone, package }),
+      });
+
+      //console.log("Raw response:", response);  // Log raw response
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Erreur d'inscription");
+      }
+
+      const data = await response.json();
+      //console.log("Response JSON:", data);  // Log the response data
+
+      alert(`Inscription réussie! Le mot de passe est: ${data.password} \nVous pouvez faire une capture d'écran et l'écrire quelque part \n\n${data.password}`);
+      window.location.href = "/public/dashboard.html";
+      
+    } catch (error) {
+      console.error("Error occurred:", error);  // Log the error
+      errorContainer.textContent = error.message;
+    }
+  }
+</script>
+
+<script>
+  document.getElementById("registerForm").addEventListener("submit", register);
+</script>
+
 </body>
 
 </html>

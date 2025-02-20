@@ -13,6 +13,21 @@
 
 <body>
   <div class="flex flex-col items-center justify-center min-h-screen bg-sky-700 p-4 ">
+    <!-- <h1>Your WIFI Portal</h1>
+    <h1 class="text-5xl mb-7 font-bold text-yellow-300 flex justify-center items-center gap-2 ">
+      <svg fill="currentColor" version="1.1" id="Capa_1" viewBox="0 0 365.892 365.892" xml:space="preserve">
+        <g>
+          <circle cx="182.945" cy="286.681" r="41.494" />
+          <path
+            d="M182.946,176.029c-35.658,0-69.337,17.345-90.09,46.398c-5.921,8.288-4.001,19.806,4.286,25.726   c3.249,2.321,6.994,3.438,10.704,3.438c5.754,0,11.423-2.686,15.021-7.724c13.846-19.383,36.305-30.954,60.078-30.954   c23.775,0,46.233,11.571,60.077,30.953c5.919,8.286,17.437,10.209,25.726,4.288c8.288-5.92,10.208-17.438,4.288-25.726   C252.285,193.373,218.606,176.029,182.946,176.029z" />
+          <path
+            d="M182.946,106.873c-50.938,0-99.694,21.749-133.77,59.67c-6.807,7.576-6.185,19.236,1.392,26.044   c3.523,3.166,7.929,4.725,12.32,4.725c5.051-0.001,10.082-2.063,13.723-6.116c27.091-30.148,65.849-47.439,106.336-47.439   s79.246,17.291,106.338,47.438c6.808,7.576,18.468,8.198,26.043,1.391c7.576-6.808,8.198-18.468,1.391-26.043   C282.641,128.621,233.883,106.873,182.946,106.873z" />
+          <path
+            d="M360.611,112.293c-47.209-48.092-110.305-74.577-177.665-74.577c-67.357,0-130.453,26.485-177.664,74.579   c-7.135,7.269-7.027,18.944,0.241,26.079c3.59,3.524,8.255,5.282,12.918,5.281c4.776,0,9.551-1.845,13.161-5.522   c40.22-40.971,93.968-63.534,151.344-63.534c57.379,0,111.127,22.563,151.343,63.532c7.136,7.269,18.812,7.376,26.08,0.242   C367.637,131.238,367.745,119.562,360.611,112.293z" />
+        </g>
+      </svg>
+      Mon WIFI Moderne
+    </h1> -->
     <div class="containerr max-w-sm w-full p-7 py-6 bg-white shadow-lg rounded-lg ">
       <h2 class="text-2xl font-bold mb-4">Créer mon compte </h2>
       <form id="registerForm">
@@ -103,52 +118,74 @@
   <script>
 
     document.addEventListener('DOMContentLoaded', () => {
-      const selectElement = document.getElementById('package');
+      alert('Vous aurez besoin d\'une adresse mail pour pouvoir payer votre forfait par Momo, si vous n\'en avez pas veuillez contacter l\'administrateur pour qu\il vous créée un compte')
+      
+      const nameInput = document.getElementById("name");
+      const phoneInput = document.getElementById("tel");
+      const packageInput = document.getElementById("package");
+      const errorContainer = document.getElementById("errors");
+      const payButton = document.getElementById('pay');
+
+      const name = nameInput.value.trim();
+      const phone = phoneInput.value.replace(/\s+/g, ""); // Remove spaces from phone number
+      const package = packageInput.value;
+
       const amountInput = document.getElementById('amount');
       const packageLabel = document.getElementById('packageName');
+      
 
       // Update payment amount when package selection changes
-      selectElement.addEventListener('change', () => {
-        const selectedOption = selectElement.options[selectElement.selectedIndex];
-        const amount = selectedOption.dataset.amount || '0';
-        const package = selectedOption.value;
+      packageInput.addEventListener('change', () => {
+        const selectedPackage = packageInput.options[packageInput.selectedIndex];
+        const amount = selectedPackage.dataset.amount || '0';
+        const package = selectedPackage.value;
 
         //console.log('amountInput: ', amountInput);
         amountInput.textContent = `${amount} FCFA`;
         packageLabel.textContent = package;
       });
-    });
-
-  </script>
-
-  <script>
-    function ProceedPayment(name, phone, amount, package) {
 
       // Initialize FedaPay widget
       let widget = FedaPay.init({
         public_key: 'pk_live_YSlxSSpIrQssqOUVEOSD-iNe'
       });
 
-      // Pass dynamic attributes to FedaPay widget
-      widget.open({
-        transaction: {
-          amount: parseInt(amount),
-          description: `Forfait: ${package}`,
-        },
-        customer: {
-          lastname: name,
-          phone_number: phone,
-        }
-      });
+      // Handle payment button click
+      payButton.addEventListener('click', (event) => {
+        event.preventDefault(); // Prevent form submission
 
-      console.log("Payment data:", {
-        name: name,
-        phone: phone,
-        amount: amount,
-        package: package
+        const selectedPackage = packageInput.options[packageInput.selectedIndex];
+        const amount = selectedPackage.dataset.amount || '0';
+        const packageName = selectedPackage.value;
+
+        if (!name || !phone) {
+          document.getElementById('errors').textContent = "Veuillez renseigner toutes les informations !";
+          return;
+        }
+
+        document.getElementById('errors').textContent = ''; // Clear errors
+
+        // Pass dynamic attributes to FedaPay widget
+        widget.open({
+          transaction: {
+            amount: parseInt(amount),
+            description: `Forfait: ${packageName}`,
+          },
+          customer: {
+            lastname: name,
+            phone_number: phone,
+          }
+        });
+
+        console.log("Payment data:", {
+          name: name,
+          phone: phone,
+          amount,
+          package: packageName
+        });
       });
-      return false
-    }
+    });
+
   </script>
 
 
@@ -159,13 +196,11 @@
       const nameInput = document.getElementById("name");
       const phoneInput = document.getElementById("tel");
       const packageInput = document.getElementById("package");
-      const amountInput = document.getElementById('amount');
       const errorContainer = document.getElementById("errors");
 
       const name = nameInput.value.trim();
       const phone = phoneInput.value.replace(/\s+/g, ""); // Remove spaces from phone number
       const package = packageInput.value;
-      const amount = amountInput.value;
 
       errorContainer.textContent = ""; // Clear previous errors
 
@@ -173,7 +208,7 @@
         errorContainer.textContent = "Veuillez saisir votre nom";
         return;
       }
-      if (name.length < 3) {
+      if (name.length<3) {
         errorContainer.textContent = "Ce nom est trop court";
         return;
       }
@@ -181,10 +216,10 @@
         errorContainer.textContent = "Veuillez saisir votre numéro de téléphone.";
         return;
       }
-      if (phone.length < 8) {
+      if (phone.length<8) {
         errorContainer.textContent = "Numéro de téléphone trop court";
         return;
-      } else if (phone.length > 14) {
+      } else if(phone.length>14){
         errorContainer.textContent = "Numéro de téléphone trop long";
         return;
       }
@@ -194,35 +229,28 @@
       }
 
       try {
+        // console.log("Sending data:", { name, phone });
+        const response = await fetch(window.location.origin + "/register", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name, phone, package }),
+        });
 
-       // const paymentProceded = await ProceedPayment(name, phone, amount, package)
+        //console.log("Raw response:", response);  // Log raw response
 
-        if (0 != 0) {
-          //alert('Vous allez à present effectuer le paiement, vous aurez besoin de votre adresse mail')
-        } else {
-
-          // console.log("Sending data:", { name, phone });
-          const response = await fetch(window.location.origin + "/register", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ name, phone, amount, package }),
-          });
-
-          //console.log("Raw response:", response);  // Log raw response
-
-          if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.error || "Erreur d'inscription");
-          }
-
-          const data = await response.json();
-          //console.log("Response JSON:", data);  // Log the response data
-
-          alert(`Inscription réussie! Votre mot de passe est: ${data.password} \nVous pouvez faire une capture d'écran et l'écrire quelque part \n\n${data.password}`);
-          console.log("header located");
-
-          window.location.href = "/public/login.html";
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || "Erreur d'inscription");
         }
+
+        const data = await response.json();
+        //console.log("Response JSON:", data);  // Log the response data
+
+        alert(`Inscription réussie! Votre mot de passe est: ${data.password} \nVous pouvez faire une capture d'écran et l'écrire quelque part \n\n${data.password}`);
+        //console.log("header located");
+        
+        window.location.href = "/public/login.html";
+
       } catch (error) {
         console.error("Error occurred:", error);  // Log the error
         errorContainer.textContent = error.message;
@@ -232,7 +260,7 @@
 
 
   <script>
-    document.getElementById("registerForm").addEventListener("submit", register);
+    document.getElementById("registerFormmm").addEventListener("submit", register);
   </script>
 
 
