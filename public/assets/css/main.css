@@ -1,4 +1,21 @@
-/* exportdefaultPercocets99 */
+svg{
+  width: 70px;
+  height: 70px;
+  padding: 0px 8px;
+  margin-right: 8px;
+  /* margin: 0px 8px; */
+  background-color: purple;
+  color: oklch(0.905 0.182 98.111);
+  border-radius: 8px;
+  box-shadow: 0 0 2px black;
+}
+@media (max-width:404px) {
+  svg{
+  width: 50px;
+  height: 50px;
+  }
+}
+
 .container{
   background-color: #98888858;
   background-color: #2a2a2a3a;

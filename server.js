@@ -6,11 +6,13 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const cookieParser = require('cookie-parser');
 const { stringify } = require('csv-stringify/sync');
+const net = require('net');
 
 const port = 2025;
 const USERS_FILE = path.join(__dirname, 'server/users.csv');
+const TEKRADIUS_USERS_FILE = path.join(__dirname, 'server/TekRADIUS-User.csv');
 const SALT_ROUNDS = 10;
-const JWT_SECRET = 'your-VERY-STRONG-SECRET-key'; // Use a strong secret key in production
+const JWT_SECRET = 'e9ff19feccd320df5813ffbf02187c7f8ac1f25bada287cb7923fc245c87fd96'; // Use a strong secret key in production
 const JWT_EXPIRATION = '1h'; // Session expires in one hour
 const SESSION_COOKIE_NAME = 'session_token';
 
@@ -82,6 +84,7 @@ async function registerUser(req, res) {
     return expirationDate ? expirationDate.toISOString() : null;
   }
 
+
   let body = '';
   req.on('data', chunk => { body += chunk.toString(); });
   req.on('end', async () => {
@@ -126,6 +129,14 @@ async function registerUser(req, res) {
 
       const newUser = stringify([[id, name, cleanPhone, package, hashedPassword, delay, expirationDate, timePassed, role]], { header: false });
       await fs.appendFile(USERS_FILE, newUser);
+
+
+      // Ensure TekRADIUS user file exists
+      await ensureFileExists(TEKRADIUS_USERS_FILE);
+
+      // Append to TekRADIUS user file
+      const radiusUser = `${phone},${password},User-Password,==,${password},Expiration,=${calculateExpirationDate(package)}\n`;
+      await fs.appendFile(TEKRADIUS_USERS_FILE, radiusUser);
 
       console.log(`✅ User registered: ${cleanPhone}`);
       res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -173,12 +184,18 @@ async function loginUser(req, res) {
         return res.end(JSON.stringify({ error: 'Numéro de téléphone ou mot de passe incorrect !' }));
       }
 
+      // Forwarding login requests to TekRADIUS
+      const client = new net.Socket();
+      client.connect(1812, '127.0.0.1', () => {
+        client.write(`User-Name=${phone},User-Password=${password}`);
+      });
+      
       // For admin, create a JWT and set it as an HttpOnly cookie.
       const role = user[8];
       if (role === 'admin') {
         const token = jwt.sign({ id: user[0], role }, JWT_SECRET, { expiresIn: JWT_EXPIRATION });
         // For local testing over HTTP, we omit the Secure flag. In production (HTTPS), add Secure.
-        res.setHeader('Set-Cookie', `${SESSION_COOKIE_NAME}=${token}; HttpOnly; SameSite=Strict; Path=/; Max-Age=300`);
+        res.setHeader('Set-Cookie', `${SESSION_COOKIE_NAME}=${token}; HttpOnly; SameSite=Strict; Path=/; Max-Age=3600`);
         res.writeHead(200, { 'Content-Type': 'application/json' });
         return res.end(JSON.stringify({
           message: 'Login successful',
@@ -187,9 +204,61 @@ async function loginUser(req, res) {
       }
 
       // For non-admin users, return their info.
-      // (You can add additional handling if needed)
+      console.log(`✅ User logged in: ${cleanPhone}`);
+
+      // Define the packages with their corresponding titles, durations, and delays
+      const packageDetails = {
+        'kwaabo': { titre: 'Express', duree: '2 heures', delay: 2, expirationDate: 2, timePassed: 0 },
+        'waaba': { titre: 'Habitué', duree: '12h', delay: 12, expirationDate: 12, timePassed: 0 },
+        'semaine': { titre: 'Client Fidèle', duree: '24h', delay: 24, expirationDate: 24, timePassed: 0 },
+        '2Semaines': { titre: 'Semaines (Client de la maison)', duree: '55h', delay: 55, expirationDate: 55, timePassed: 0 },
+        'mois': { titre: 'Expert', duree: '120h', delay: 120, expirationDate: 120, timePassed: 0 },
+        'illimite': { titre: 'Sans Limites', duree: 'Illimité', delay: -1, expirationDate: -1, timePassed: 0 }
+      };
+
+      const userPackage = user[3]; // Package is stored in user[3]
+      const package = packageDetails[userPackage];
+
+      if (!package) {
+        res.writeHead(404, { 'Content-Type': 'application/json' });
+        return res.end(JSON.stringify({ error: 'Package not found' }));
+      }
+
+      // Retrieve expiration date and time passed from CSV data
+      const expirationDate = new Date(user[6]);
+      const frExpirationDate = expirationDate.toLocaleString("fr-FR", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+        hour12: false, // Ensures 24-hour format
+      });
+
+      const currentDate = new Date();
+
+      let remainingTime = '';
+      if (expirationDate > currentDate) {
+        const remainingTimeInMs = expirationDate - currentDate;
+        const remainingTimeInHours = Math.floor(remainingTimeInMs / (1000 * 60 * 60)); // Convert ms to hours
+        // const expirationHour = remainingTimeInHours.getHours();
+        remainingTime = `${remainingTimeInHours} heures restantes`;
+      } else {
+        remainingTime = 'Expiré';
+      }
+
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ message: 'Login successful', user: { phone, role } }));
+      res.end(JSON.stringify({
+        message: 'Login successful',
+        name: user[1],
+        phone: user[2],
+        package: user[3],
+        titre: package.titre,
+        duree: package.duree,
+        remainingTime: remainingTime,
+        expirationDate: frExpirationDate,
+      }));
     } catch (err) {
       console.error("❌ Login Error:", err);
       res.writeHead(500, { 'Content-Type': 'application/json' });
@@ -261,7 +330,7 @@ async function serveDashboard(req, res) {
   // Parse cookies from the request
   const cookies = parseCookies(req.headers.cookie);
   const token = cookies[SESSION_COOKIE_NAME];
-
+  console.log(token);
   if (!token) {
     res.writeHead(401, { 'Content-Type': 'application/json' });
     return res.end(JSON.stringify({ error: 'Unauthorized: No session token' }));
