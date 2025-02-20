@@ -200,6 +200,10 @@
         errorContainer.textContent = "Veuillez saisir votre nom";
         return;
       }
+      if (name.length<3) {
+        errorContainer.textContent = "Ce nom est trop court";
+        return;
+      }
       if (!phone) {
         errorContainer.textContent = "Veuillez saisir votre numéro de téléphone.";
         return;
@@ -207,7 +211,7 @@
       if (phone.length<8) {
         errorContainer.textContent = "Numéro de téléphone trop court";
         return;
-      } else if(phone.length>16){
+      } else if(phone.length>14){
         errorContainer.textContent = "Numéro de téléphone trop long";
         return;
       }
@@ -235,6 +239,10 @@
         //console.log("Response JSON:", data);  // Log the response data
 
         alert(`Inscription réussie! Votre mot de passe est: ${data.password} \nVous pouvez faire une capture d'écran et l'écrire quelque part \n\n${data.password}`);
+        console.log("header located");
+        
+        window.location.href = "/public/login.html";
+
       } catch (error) {
         console.error("Error occurred:", error);  // Log the error
         errorContainer.textContent = error.message;
