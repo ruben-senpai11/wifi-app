@@ -350,6 +350,7 @@ async function loginUser(req, res) {
       // Retrieve expiration date and time passed from CSV data
       const delay = new Date(user[5]);
       const expirationDate = new Date(user[6]);
+      const passedTime = user[7];
       const frExpirationDate = expirationDate.toLocaleString("fr-FR", {
         day: "2-digit",
         month: "2-digit",
@@ -362,15 +363,27 @@ async function loginUser(req, res) {
 
       const currentDate = new Date();
 
-      let remainingTime = delay;
-      if (expirationDate == 0) {
-        return
+      console.log("passedTime: ", passedTime);
+      let remainingTime = 0;
+      if (passedTime <= 0) {
+        remainingTime = user[5]
+        console.log("remainingTime ! 0: ", remainingTime);
       }
       else if (expirationDate > currentDate) {
+        const remainingTimeDefault = expirationDate - passedTime;
         const remainingTimeInMs = expirationDate - currentDate;
-        const remainingTimeInHours = Math.floor(remainingTimeInMs / (1000 * 60 * 60)); // Convert ms to hours
+        const remainingTimeInHours = Math.floor(remainingTimeInMs / (1000 * 60 * 60)); 
         // const expirationHour = remainingTimeInHours.getHours();
-        remainingTime = `${remainingTimeInHours} heure.s restantes`;
+        remainingTime = remainingTimeDefault.toLocaleString("fr-FR", {
+          day: "2-digit",
+          month: "2-digit",
+          year: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit",
+          hour12: false, // Ensures 24-hour format;
+        })
+        console.log("remainingTime ! calculated: ", remainingTime);
       } else {
         remainingTime = 'Expiré';
       }
