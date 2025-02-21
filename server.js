@@ -10,6 +10,9 @@ const net = require('net');
 const { exec } = require('child_process');
 const isWindows = process.platform === 'win32';
 
+// NEW: Global object to track active non-admin users (by cleanPhone) with login time and clientIP.
+const activeUsers = {};
+
 require('./server/usersCleaner')
 
 const port = 2025;
@@ -29,7 +32,7 @@ const SESSION_COOKIE_NAME = 'session_token';
 function blockAllClients() {
   if (isWindows) {
     // Windows: Block all outbound traffic (you may need to specify the WiFi adapter/profile as needed).
-    exec(`netsh advfirewall firewall add rule name="BlockAllClients" dir=out action=block remoteip=any`, (error, stdout, stderr) => {
+    exec(`netsh advfirewall firewall add rule name="BlockAllClients" dir=out action=block remoteip=0.0.0.0/0`, (error, stdout, stderr) => {
       if (error) {
         console.error(`Error blocking traffic on Windows: ${error.message}`);
         return;
@@ -99,7 +102,7 @@ function blockClient(clientIP) {
     });
   } else {
     const localIP = getLocalIP();
-    exec(`sudo iptables -I FORWARD -s ${clientIP} ! -d ${localIP}/32 -j DROP`, (error, stdout, stderr) => {
+    exec(`sudo iptables -I FORWARD -s 0.0.0.0/0 ! -d ${localIP} -j DROP`, (error, stdout, stderr) => {
       if (error) {
         console.error(`Error blocking traffic for ${clientIP}: ${error.message}`);
         return;
@@ -328,6 +331,9 @@ async function loginUser(req, res) {
       const clientIP = req.socket.remoteAddress; // or req.connection.remoteAddress depending on your Node version
       console.log("clientIP: ", clientIP);
       allowClient(clientIP);
+      
+      // NEW: Track active user login time for timePassed updates.
+      activeUsers[cleanPhone] = { loginTime: Date.now(), clientIP: clientIP };
 
       // Define the packages with their corresponding titles, durations, and delays
       const packageDetails = {
@@ -506,6 +512,13 @@ async function logoutUser(req, res) {
     return res.end();
   }
 
+  // NEW: Remove active user(s) matching the current client's IP.
+  for (const phone in activeUsers) {
+    if (activeUsers[phone].clientIP === req.socket.remoteAddress) {
+      delete activeUsers[phone];
+    }
+  }
+
   // Clear the cookie by setting an expired date.
   res.setHeader('Set-Cookie', `${SESSION_COOKIE_NAME}=; HttpOnly; SameSite=Strict; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT`);
   res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -590,3 +603,113 @@ server.listen(port, LOCAL_IP, () => {
   blockAllClients();
 });
 
+// NEW: Function to update the timePassed field for active users in the USERS_FILE.
+async function updateActiveUsersTime() {
+  try {
+    // Read the entire USERS_FILE.
+    const fileContent = await fs.readFile(USERS_FILE, 'utf8');
+    const lines = fileContent.split('\n').filter(line => line.trim() !== '');
+    if (lines.length === 0) return;
+    // First line is the header.
+    const header = lines[0];
+    const dataRows = lines.slice(1);
+    
+    const updatedRows = dataRows.map(row => {
+      const columns = row.split(',');
+      // columns indices: [0]: id, [1]: name, [2]: phone, [3]: package, [4]: password, [5]: delay, [6]: expirationDate, [7]: timePassed, [8]: role, [9]: ip
+      const phone = columns[2];
+      if (activeUsers.hasOwnProperty(phone)) {
+        // Calculate elapsed time in seconds.
+        const loginTime = activeUsers[phone].loginTime;
+        const elapsed = Math.floor((Date.now() - loginTime) / 1000);
+        columns[7] = elapsed.toString();
+      }
+      return columns.join(',');
+    });
+    
+    const newFileContent = [header, ...updatedRows].join('\n');
+    await fs.writeFile(USERS_FILE, newFileContent, 'utf8');
+    console.log('Updated active users timePassed.');
+  } catch (err) {
+    console.error('Error updating active users time:', err);
+  }
+}
+
+// NEW: Schedule the updateActiveUsersTime function to run every 60 seconds.
+setInterval(updateActiveUsersTime, 60000);
+
+
+// NEW: RADIUS Server Integration
+const dgram = require('dgram');
+const radius = require('radius');
+
+const RADIUS_PORT = 1812;
+const RADIUS_SECRET = 'your_shared_secret_here'; // Replace with your actual shared secret
+
+const radiusServer = dgram.createSocket('udp4');
+
+radiusServer.on('message', (msg, rinfo) => {
+  let packet;
+  try {
+    packet = radius.decode({ packet: msg, secret: RADIUS_SECRET });
+  } catch (e) {
+    console.error('Failed to decode RADIUS packet:', e);
+    return;
+  }
+
+  if (packet.code === 'Access-Request') {
+    const username = packet.attributes['User-Name'];
+    const password = packet.attributes['User-Password'];
+
+    // Validate credentials by reading the USERS_FILE.
+    fs.readFile(USERS_FILE, 'utf8').then(fileContent => {
+      const lines = fileContent.split('\n').filter(line => line.trim() !== '');
+      // Skip header and find a matching user by phone (username).
+      const userLine = lines.slice(1).find(line => {
+        const cols = line.split(',');
+        return cols[2] === username;
+      });
+      if (userLine) {
+        const cols = userLine.split(',');
+        // Compare provided password with the stored hash.
+        bcrypt.compare(password, cols[4]).then(match => {
+          const responseCode = match ? 'Access-Accept' : 'Access-Reject';
+          const response = radius.encode_response({
+            packet: packet,
+            code: responseCode,
+            secret: RADIUS_SECRET,
+          });
+          radiusServer.send(response, 0, response.length, rinfo.port, rinfo.address, (err) => {
+            if (err) {
+              console.error('Error sending RADIUS response:', err);
+            } else {
+              console.log(`RADIUS responded to ${rinfo.address} with ${responseCode}`);
+            }
+          });
+        }).catch(err => {
+          console.error('Error comparing password for RADIUS:', err);
+        });
+      } else {
+        // User not found, reject.
+        const response = radius.encode_response({
+          packet: packet,
+          code: 'Access-Reject',
+          secret: RADIUS_SECRET,
+        });
+        radiusServer.send(response, 0, response.length, rinfo.port, rinfo.address, (err) => {
+          if (err) {
+            console.error('Error sending RADIUS response:', err);
+          } else {
+            console.log(`RADIUS responded to ${rinfo.address} with Access-Reject (user not found)`);
+          }
+        });
+      }
+    }).catch(err => {
+      console.error('Error reading USERS_FILE for RADIUS:', err);
+    });
+  }
+});
+
+radiusServer.bind(RADIUS_PORT, () => {
+  console.log(`RADIUS server listening on port ${RADIUS_PORT}`);
+});

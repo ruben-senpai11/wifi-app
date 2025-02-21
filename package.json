@@ -16,6 +16,7 @@
     "crypto": "^1.0.1",
     "csv-parser": "^3.2.0",
     "csv-stringify": "^6.5.2",
+    "dgram": "^1.0.1",
     "dotenv": "^16.4.7",
     "electron-sudo": "^4.0.12",
     "express": "^4.21.2",
@@ -24,7 +25,8 @@
     "https": "^1.0.0",
     "jsonwebtoken": "^9.0.2",
     "node-cron": "^3.0.3",
-    "path": "^0.12.7"
+    "path": "^0.12.7",
+    "radius": "^1.1.4"
   },
   "devDependencies": {
     "electron-packager": "^17.1.2"
