@@ -1,10 +1,27 @@
+const os = require('os');
 const fs = require('fs').promises;
 const path = require('path');
 const { stringify } = require('csv-stringify/sync');
 const cron = require('node-cron');  // Import node-cron
 const USERS_FILE = path.join(__dirname, 'users.csv');
 const TEKRADIUS_USERS_FILE = path.join(__dirname, 'TekRADIUS-User.csv');
+const isWindows = process.platform === 'win32';
+const { exec } = require('child_process');
 
+
+// Get the local IP address
+function getLocalIP() {
+  const interfaces = os.networkInterfaces();
+  for (const name of Object.keys(interfaces)) {
+    for (const iface of interfaces[name]) {
+      if (iface.family === 'IPv4' && !iface.internal) {
+        return iface.address;
+      }
+    }
+  }
+  return '127.0.0.1';
+}
+const LOCAL_IP = getLocalIP();
 
 /**
  * (Optional) Blocks internet access for a specific client IP.

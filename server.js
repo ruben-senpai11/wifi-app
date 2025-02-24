@@ -139,6 +139,124 @@ function parseCookies(cookieHeader) {
   return list;
 }
 
+
+
+// NEW: Function to update the timePassed field for active users in the USERS_FILE.
+async function updateActiveUsersTime() {
+  try {
+    // Read the entire USERS_FILE.
+    const fileContent = await fs.readFile(USERS_FILE, 'utf8');
+    const lines = fileContent.split('\n').filter(line => line.trim() !== '');
+    if (lines.length === 0) return;
+    // First line is the header.
+    const header = lines[0];
+    const dataRows = lines.slice(1);
+    
+    const updatedRows = dataRows.map(row => {
+      const columns = row.split(',');
+      // columns indices: [0]: id, [1]: name, [2]: phone, [3]: package, [4]: password, [5]: delay, [6]: expirationDate, [7]: timePassed, [8]: role, [9]: ip
+      const phone = columns[2];
+      if (activeUsers.hasOwnProperty(phone)) {
+        // Calculate elapsed time in seconds.
+        const loginTime = activeUsers[phone].loginTime;
+        const elapsed = Math.floor((Date.now() - loginTime) / 1000);
+        columns[7] = elapsed.toString();
+      }
+      return columns.join(',');
+    });
+    
+    const newFileContent = [header, ...updatedRows].join('\n');
+    await fs.writeFile(USERS_FILE, newFileContent, 'utf8');
+    // console.log('Updated active users timePassed.', updatedRows);
+  } catch (err) {
+    console.error('Error updating active users time:', err);
+  }
+}
+
+// NEW: Schedule the updateActiveUsersTime function to run every 60 seconds.
+setInterval(updateActiveUsersTime, 60000);
+
+
+// NEW: RADIUS Server Integration
+const dgram = require('dgram');
+const radius = require('radius');
+
+const RADIUS_PORT = 1812;
+const RADIUS_SECRET = 'your_shared_secret_here'; // Replace with your actual shared secret
+
+const radiusServer = dgram.createSocket('udp4');
+
+console.log("Will Init Radius server");
+
+radiusServer.on('message', (msg, rinfo) => {
+  console.log("Initing Radius server");
+  let packet;
+  try {
+    packet = radius.decode({ packet: msg, secret: RADIUS_SECRET });
+  } catch (e) {
+    console.error('Failed to decode RADIUS packet:', e);
+    return;
+  }
+
+  if (packet.code === 'Access-Request') {
+    const username = packet.attributes['User-Name'];
+    const password = packet.attributes['User-Password'];
+
+    // Validate credentials by reading the USERS_FILE.
+    fs.readFile(USERS_FILE, 'utf8').then(fileContent => {
+      const lines = fileContent.split('\n').filter(line => line.trim() !== '');
+      // Skip header and find a matching user by phone (username).
+      const userLine = lines.slice(1).find(line => {
+        const cols = line.split(',');
+        return cols[2] === username;
+      });
+      if (userLine) {
+        const cols = userLine.split(',');
+        // Compare provided password with the stored hash.
+        bcrypt.compare(password, cols[4]).then(match => {
+          const responseCode = match ? 'Access-Accept' : 'Access-Reject';
+          const response = radius.encode_response({
+            packet: packet,
+            code: responseCode,
+            secret: RADIUS_SECRET,
+          });
+          radiusServer.send(response, 0, response.length, rinfo.port, rinfo.address, (err) => {
+            if (err) {
+              console.error('Error sending RADIUS response:', err);
+            } else {
+              console.log(`RADIUS responded to ${rinfo.address} with ${responseCode}`);
+            }
+          });
+        }).catch(err => {
+          console.error('Error comparing password for RADIUS:', err);
+        });
+      } else {
+        // User not found, reject.
+        const response = radius.encode_response({
+          packet: packet,
+          code: 'Access-Reject',
+          secret: RADIUS_SECRET,
+        });
+        radiusServer.send(response, 0, response.length, rinfo.port, rinfo.address, (err) => {
+          if (err) {
+            console.error('Error sending RADIUS response:', err);
+          } else {
+            console.log(`RADIUS responded to ${rinfo.address} with Access-Reject (user not found)`);
+          }
+        });
+      }
+    }).catch(err => {
+      console.error('Error reading USERS_FILE for RADIUS:', err);
+    });
+  }
+});
+
+radiusServer.bind(RADIUS_PORT, () => {
+  console.log(`RADIUS server listening on port ${RADIUS_PORT}`);
+});
+
+
+
 // --- API Handlers ---
 
 // Register User API (unchanged)
@@ -601,115 +719,4 @@ server.listen(port, LOCAL_IP, () => {
   console.log(`🚀 Server running at http://${LOCAL_IP}:${port}`);
   console.log(`🌐 Access the portal at http://wifi.home:2025/`);
   blockAllClients();
-});
-
-// NEW: Function to update the timePassed field for active users in the USERS_FILE.
-async function updateActiveUsersTime() {
-  try {
-    // Read the entire USERS_FILE.
-    const fileContent = await fs.readFile(USERS_FILE, 'utf8');
-    const lines = fileContent.split('\n').filter(line => line.trim() !== '');
-    if (lines.length === 0) return;
-    // First line is the header.
-    const header = lines[0];
-    const dataRows = lines.slice(1);
-    
-    const updatedRows = dataRows.map(row => {
-      const columns = row.split(',');
-      // columns indices: [0]: id, [1]: name, [2]: phone, [3]: package, [4]: password, [5]: delay, [6]: expirationDate, [7]: timePassed, [8]: role, [9]: ip
-      const phone = columns[2];
-      if (activeUsers.hasOwnProperty(phone)) {
-        // Calculate elapsed time in seconds.
-        const loginTime = activeUsers[phone].loginTime;
-        const elapsed = Math.floor((Date.now() - loginTime) / 1000);
-        columns[7] = elapsed.toString();
-      }
-      return columns.join(',');
-    });
-    
-    const newFileContent = [header, ...updatedRows].join('\n');
-    await fs.writeFile(USERS_FILE, newFileContent, 'utf8');
-    console.log('Updated active users timePassed.');
-  } catch (err) {
-    console.error('Error updating active users time:', err);
-  }
-}
-
-// NEW: Schedule the updateActiveUsersTime function to run every 60 seconds.
-setInterval(updateActiveUsersTime, 60000);
-
-
-// NEW: RADIUS Server Integration
-const dgram = require('dgram');
-const radius = require('radius');
-
-const RADIUS_PORT = 1812;
-const RADIUS_SECRET = 'your_shared_secret_here'; // Replace with your actual shared secret
-
-const radiusServer = dgram.createSocket('udp4');
-
-radiusServer.on('message', (msg, rinfo) => {
-  let packet;
-  try {
-    packet = radius.decode({ packet: msg, secret: RADIUS_SECRET });
-  } catch (e) {
-    console.error('Failed to decode RADIUS packet:', e);
-    return;
-  }
-
-  if (packet.code === 'Access-Request') {
-    const username = packet.attributes['User-Name'];
-    const password = packet.attributes['User-Password'];
-
-    // Validate credentials by reading the USERS_FILE.
-    fs.readFile(USERS_FILE, 'utf8').then(fileContent => {
-      const lines = fileContent.split('\n').filter(line => line.trim() !== '');
-      // Skip header and find a matching user by phone (username).
-      const userLine = lines.slice(1).find(line => {
-        const cols = line.split(',');
-        return cols[2] === username;
-      });
-      if (userLine) {
-        const cols = userLine.split(',');
-        // Compare provided password with the stored hash.
-        bcrypt.compare(password, cols[4]).then(match => {
-          const responseCode = match ? 'Access-Accept' : 'Access-Reject';
-          const response = radius.encode_response({
-            packet: packet,
-            code: responseCode,
-            secret: RADIUS_SECRET,
-          });
-          radiusServer.send(response, 0, response.length, rinfo.port, rinfo.address, (err) => {
-            if (err) {
-              console.error('Error sending RADIUS response:', err);
-            } else {
-              console.log(`RADIUS responded to ${rinfo.address} with ${responseCode}`);
-            }
-          });
-        }).catch(err => {
-          console.error('Error comparing password for RADIUS:', err);
-        });
-      } else {
-        // User not found, reject.
-        const response = radius.encode_response({
-          packet: packet,
-          code: 'Access-Reject',
-          secret: RADIUS_SECRET,
-        });
-        radiusServer.send(response, 0, response.length, rinfo.port, rinfo.address, (err) => {
-          if (err) {
-            console.error('Error sending RADIUS response:', err);
-          } else {
-            console.log(`RADIUS responded to ${rinfo.address} with Access-Reject (user not found)`);
-          }
-        });
-      }
-    }).catch(err => {
-      console.error('Error reading USERS_FILE for RADIUS:', err);
-    });
-  }
-});
-
-radiusServer.bind(RADIUS_PORT, () => {
-  console.log(`RADIUS server listening on port ${RADIUS_PORT}`);
 });
