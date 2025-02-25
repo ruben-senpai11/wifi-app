@@ -21,35 +21,6 @@ function getLocalIP() {
   }
   return '127.0.0.1';
 }
-const LOCAL_IP = getLocalIP();
-
-/**
- * (Optional) Blocks internet access for a specific client IP.
- * This function can be used if you need to re-block an individual client.
- *
- * @param {string} clientIP - The client's IP address to block.
- */
-function blockClient(clientIP) {
-  if (isWindows) {
-    // Windows: Add a rule to block outbound traffic for the specific client IP.
-    exec(`netsh advfirewall firewall add rule name="BlockClient ${clientIP}" dir=out action=block remoteip=${clientIP}`, (error, stdout, stderr) => {
-      if (error) {
-        console.error(`Error blocking traffic for ${clientIP} on Windows: ${error.message}`);
-        return;
-      }
-      console.log(`🚫 Internet access blocked for ${clientIP} (Windows)`);
-    });
-  } else {
-    const localIP = getLocalIP();
-    exec(`sudo iptables -I FORWARD -s ${clientIP} ! -d ${localIP}/32 -j DROP`, (error, stdout, stderr) => {
-      if (error) {
-        console.error(`Error blocking traffic for ${clientIP}: ${error.message}`);
-        return;
-      }
-      console.log(`🚫 Internet access blocked for ${clientIP}`);
-    });
-  }
-}
 
 // Function to check if a user has expired
 function hasUserExpired(expirationDate) {
@@ -77,9 +48,6 @@ async function removeCsvUsers() {
     // Filter out expired users
     const validUsers = users.filter(user => {
       const expirationDate = user[6]; // expirationDate is stored in the 7th 
-      if(hasUserExpired(user[6])){
-        blockClient(user[9])
-      }
       return !hasUserExpired(expirationDate);
     });
 

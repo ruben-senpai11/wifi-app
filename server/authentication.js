@@ -1,172 +1,3 @@
-const http = require('http');
-const fs = require('fs').promises;
-const path = require('path');
-const os = require('os');
-const bcrypt = require('bcrypt');
-const jwt = require('jsonwebtoken');
-const cookieParser = require('cookie-parser');
-const { stringify } = require('csv-stringify/sync');
-const net = require('net');
-const { exec } = require('child_process');
-const isWindows = process.platform === 'win32';
-
-// NEW: Global object to track active non-admin users (by cleanPhone) with login time and clientIP.
-const activeUsers = {};
-
-//require('./server/usersCleaner')
-
-const port = 2025;
-const USERS_FILE = path.join(__dirname, 'server/users.csv');
-const ALLTIME_USERS_FILE = path.join(__dirname, 'server/allTimeUsers.csv');
-const SALT_ROUNDS = 10;
-const JWT_SECRET = 'e9ff19feccd320df5813ffbf02187c7f8ac1f25bada287cb7923fc245c87fd96'; // Use a strong secret key in production
-const JWT_EXPIRATION = '1h'; // Session expires in one hour
-const SESSION_COOKIE_NAME = 'session_token';
-
-
-// --- Helper Functions ---
-
-// Ensure the CSV file exists with headers.
-async function ensureFileExists(filePath) {
-  try {
-    await fs.access(filePath);
-    const content = await fs.readFile(filePath, 'utf8');
-    if (!content.trim()) {
-      await fs.writeFile(filePath, stringify([], { header: true, columns: ['id', 'name', 'phone', 'package', 'password', 'delay', 'expirationDate', 'timePassed', 'role', 'ip'] }));
-    }
-  } catch {
-    await fs.writeFile(filePath, stringify([], { header: true, columns: ['id', 'name', 'phone', 'package', 'password', 'delay', 'expirationDate', 'timePassed', 'role', 'ip'] }));
-  }
-}
-
-
-// --- Helper: Simple cookie parser (if not using a full library) ---
-function parseCookies(cookieHeader) {
-  const list = {};
-  if (!cookieHeader) return list;
-  cookieHeader.split(';').forEach(cookie => {
-    let parts = cookie.split('=');
-    list[parts.shift().trim()] = decodeURI(parts.join('='));
-  });
-  return list;
-}
-
-
-// NEW: Function to update the timePassed field for active users in the USERS_FILE.
-async function updateActiveUsersTime() {
-  try {
-    // Read the entire USERS_FILE.
-    const fileContent = await fs.readFile(USERS_FILE, 'utf8');
-    const lines = fileContent.split('\n').filter(line => line.trim() !== '');
-    if (lines.length === 0) return;
-    // First line is the header.
-    const header = lines[0];
-    const dataRows = lines.slice(1);
-
-    const updatedRows = dataRows.map(row => {
-      const columns = row.split(',');
-      // columns indices: [0]: id, [1]: name, [2]: phone, [3]: package, [4]: password, [5]: delay, [6]: expirationDate, [7]: timePassed, [8]: role, [9]: ip
-      const phone = columns[2];
-      if (activeUsers.hasOwnProperty(phone)) {
-        // Calculate elapsed time in seconds.
-        const loginTime = activeUsers[phone].loginTime;
-        const elapsed = Math.floor((Date.now() - loginTime) / 1000);
-        columns[7] = elapsed.toString();
-      }
-      return columns.join(',');
-    });
-
-    const newFileContent = [header, ...updatedRows].join('\n');
-    await fs.writeFile(USERS_FILE, newFileContent, 'utf8');
-    // console.log('Updated active users timePassed.', updatedRows);
-  } catch (err) {
-    console.error('Error updating active users time:', err);
-  }
-}
-
-// NEW: Schedule the updateActiveUsersTime function to run every 60 seconds.
-setInterval(updateActiveUsersTime, 60000);
-
-
-// NEW: RADIUS Server Integration
-const dgram = require('dgram');
-const radius = require('radius');
-
-const RADIUS_PORT = 1812;
-const RADIUS_SECRET = 'E628F1A7'; // Replace with your actual shared secret
-
-const radiusServer = dgram.createSocket('udp4');
-
-console.log("Will Init Radius server");
-
-radiusServer.on('message', (msg, rinfo) => {
-  console.log("Initing Radius server");
-  let packet;
-  try {
-    packet = radius.decode({ packet: msg, secret: RADIUS_SECRET });
-  } catch (e) {
-    console.error('Failed to decode RADIUS packet:', e);
-    return;
-  }
-
-  if (packet.code === 'Access-Request') {
-    const username = packet.attributes['admin-2025'];
-    const password = packet.attributes['Admin-Password'];
-
-    // Validate credentials by reading the USERS_FILE.
-    fs.readFile(USERS_FILE, 'utf8').then(fileContent => {
-      const lines = fileContent.split('\n').filter(line => line.trim() !== '');
-      // Skip header and find a matching user by phone (username).
-      const userLine = lines.slice(1).find(line => {
-        const cols = line.split(',');
-        return cols[2] === username;
-      });
-      if (userLine) {
-        const cols = userLine.split(',');
-        // Compare provided password with the stored hash.
-        bcrypt.compare(password, cols[4]).then(match => {
-          const responseCode = match ? 'Access-Accept' : 'Access-Reject';
-          const response = radius.encode_response({
-            packet: packet,
-            code: responseCode,
-            secret: RADIUS_SECRET,
-          });
-          radiusServer.send(response, 0, response.length, rinfo.port, rinfo.address, (err) => {
-            if (err) {
-              console.error('Error sending RADIUS response:', err);
-            } else {
-              console.log(`RADIUS responded to ${rinfo.address} with ${responseCode}`);
-            }
-          });
-        }).catch(err => {
-          console.error('Error comparing password for RADIUS:', err);
-        });
-      } else {
-        // User not found, reject.
-        const response = radius.encode_response({
-          packet: packet,
-          code: 'Access-Reject',
-          secret: RADIUS_SECRET,
-        });
-        radiusServer.send(response, 0, response.length, rinfo.port, rinfo.address, (err) => {
-          if (err) {
-            console.error('Error sending RADIUS response:', err);
-          } else {
-            console.log(`RADIUS responded to ${rinfo.address} with Access-Reject (user not found)`);
-          }
-        });
-      }
-    }).catch(err => {
-      console.error('Error reading USERS_FILE for RADIUS:', err);
-    });
-  }
-});
-
-radiusServer.bind(RADIUS_PORT, () => {
-  console.log(`RADIUS server listening on port ${RADIUS_PORT}`);
-});
-
-
 
 // --- API Handlers ---
 
@@ -212,6 +43,34 @@ async function registerUser(req, res) {
 
     return expirationDate ? expirationDate.toISOString() : null;
   }
+/*
+  function ProceedPayment(name, phone, amount, package) {
+
+    // Initialize FedaPay widget
+    let widget = FedaPay.init({
+      public_key: 'pk_live_YSlxSSpIrQssqOUVEOSD-iNe'
+    });
+
+    // Pass dynamic attributes to FedaPay widget
+    widget.open({
+      transaction: {
+        amount: parseInt(amount),
+        description: `Forfait: ${package}`,
+      },
+      customer: {
+        lastname: name,
+        phone_number: phone,
+      }
+    });
+
+    console.log("Payment data:", {
+      name: name,
+      phone: phone,
+      amount: amount,
+      package: package
+    });
+  }
+*/
   let body = '';
   req.on('data', chunk => { body += chunk.toString(); });
   req.on('end', async () => {
@@ -260,8 +119,6 @@ async function registerUser(req, res) {
       console.log("clientIP: ", clientIP);
       const newUser = stringify([[id, name, cleanPhone, package, hashedPassword, delay, expirationDate, timePassed, role, clientIP]], { header: false });
       await fs.appendFile(USERS_FILE, newUser);
-
-      console.log("appended: ", newUser);
 
       // Ensure ALLTIME user file exists
       await ensureFileExists(ALLTIME_USERS_FILE);
@@ -330,8 +187,12 @@ async function loginUser(req, res) {
       // For non-admin users, return their info.
       console.log(`✅ User logged in: ${cleanPhone}`);
 
-      // Capture client IP to track time usage
-      const clientIP = req.socket.remoteAddress;
+      // At the end of a successful login in your loginUser function:
+      const clientIP = req.socket.remoteAddress; // or req.connection.remoteAddress depending on your Node version
+      console.log("clientIP: ", clientIP);
+      allowClient(clientIP);
+      
+      // NEW: Track active user login time for timePassed updates.
       activeUsers[cleanPhone] = { loginTime: Date.now(), clientIP: clientIP };
 
       // Define the packages with their corresponding titles, durations, and delays
@@ -371,13 +232,14 @@ async function loginUser(req, res) {
       console.log("passedTime: ", passedTime);
       let remainingTime = 0;
       if (passedTime <= 0) {
-        remainingTime = user[5];
+        remainingTime = user[5]
         console.log("remainingTime ! 0: ", remainingTime);
       }
       else if (expirationDate > currentDate) {
         const remainingTimeDefault = expirationDate - passedTime;
         const remainingTimeInMs = expirationDate - currentDate;
         const remainingTimeInHours = Math.floor(remainingTimeInMs / (1000 * 60 * 60)); 
+        // const expirationHour = remainingTimeInHours.getHours();
         remainingTime = remainingTimeDefault.toLocaleString("fr-FR", {
           day: "2-digit",
           month: "2-digit",
@@ -385,8 +247,8 @@ async function loginUser(req, res) {
           hour: "2-digit",
           minute: "2-digit",
           second: "2-digit",
-          hour12: false,
-        });
+          hour12: false, // Ensures 24-hour format;
+        })
         console.log("remainingTime ! calculated: ", remainingTime);
       } else {
         remainingTime = 'Expiré';
@@ -480,6 +342,7 @@ async function serveDashboard(req, res) {
     res.writeHead(401, { 'Content-Type': 'application/json' });
     return res.end(JSON.stringify({ error: "Vous n'êtes pas autorisé à voir cette page ! Veuillez-vous connecter à nouveau si vous êtes l'administrateur " }));
   } else {
+
     try {
       const decoded = jwt.verify(token, JWT_SECRET);
       if (decoded.role !== 'admin') {
@@ -494,7 +357,7 @@ async function serveDashboard(req, res) {
     } catch (err) {
       res.writeHead(401, { 'Content-Type': 'application/json' });
       return res.end(JSON.stringify({ error: "Vous n'êtes pas autorisé à voir cette page ! Veuillez-vous connecter à nouveau si vous êtes l'administrateur " }));
-    }
+  }
   }
 }
 
@@ -521,80 +384,3 @@ async function logoutUser(req, res) {
   res.writeHead(200, { 'Content-Type': 'application/json' });
   res.end(JSON.stringify({ message: 'Logged out successfully' }));
 }
-
-
-// Serve static files (for other routes)
-async function serveStaticFiles(req, res) {
-  let filePath = path.join(__dirname, req.url === '/' ? 'public/index.html' : req.url);
-  const ext = path.extname(filePath);
-  const mimeTypes = {
-    '.html': 'text/html',
-    '.css': 'text/css',
-    '.js': 'text/javascript',
-    '.png': 'image/png',
-    '.jpg': 'image/jpeg',
-    '.ico': 'image/x-icon',
-    '.svg': 'image/svg',
-    '.json': 'application/json'
-  };
-  const contentType = mimeTypes[ext] || 'application/octet-stream';
-
-  try {
-    // For images and other binary files, read as a buffer
-    if (['.png', '.jpg', '.ico', '.svg'].includes(ext)) {
-      const content = await fs.readFile(filePath);
-      res.writeHead(200, { 'Content-Type': contentType });
-      res.end(content);
-    } else {
-      const content = await fs.readFile(filePath, 'utf8');
-      res.writeHead(200, { 'Content-Type': contentType });
-      res.end(content, 'utf-8');
-    }
-  } catch (err) {
-    const filePath = path.join(__dirname, 'public/404.html');
-    const content = await fs.readFile(filePath, 'utf8');
-    res.writeHead(200, { 'Content-Type': 'text/html' });
-    res.end(content, 'utf8');
-  }
-}
-
-
-// --- Create HTTP Server ---
-const server = http.createServer((req, res) => {
-  console.log(`Request received: ${req.method} ${req.url}`);
-  if (req.method === 'POST' && req.url === '/register') {
-    registerUser(req, res);
-  } else if (req.method === 'POST' && req.url === '/login') {
-    loginUser(req, res);
-  } else if (req.method === 'GET' && (req.url === '/users' || req.url === '/public/users')) {
-    getAllUsers(req, res);
-  } else if (req.method === 'GET' && (req.url === '/dashboard.html' || req.url === '/public/dashboard.html')) {
-    serveDashboard(req, res);
-  } else if (req.method === 'GET' && req.url === '/logout') {
-    logoutUser(req, res);
-  } else {
-    serveStaticFiles(req, res);
-  }
-});
-
-
-// Get the local IP address
-function getLocalIP() {
-  const interfaces = os.networkInterfaces();
-  for (const name of Object.keys(interfaces)) {
-    for (const iface of interfaces[name]) {
-      if (iface.family === 'IPv4' && !iface.internal) {
-        return iface.address;
-      }
-    }
-  }
-  return '127.0.0.1';
-}
-const LOCAL_IP = getLocalIP();
-
-
-// Bind server to WiFi network & local IP
-server.listen(port, LOCAL_IP, () => {
-  console.log(`🚀 Server running at http://${LOCAL_IP}:${port}`);
-  console.log(`🌐 Access the portal at http://wifi.home:2025/`);
-});
